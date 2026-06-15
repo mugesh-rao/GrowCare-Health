@@ -150,9 +150,9 @@ const TEMPLATES = [
   },
   {
     id: 'ai-smart-front-desk',
-    name: 'AI Smart Front Desk',
-    industry: 'AI Automation',
-    description: 'Let AI route each customer message to pricing, booking, menu, human support, or a fallback reply.',
+    name: 'Clinic Smart Front Desk',
+    industry: 'Clinic / Healthcare',
+    description: 'Let AI route each patient message to booking, intake, reminders, a staff handoff, or a fallback reply.',
     nodes: [
       { id: 'trigger-1', type: 'trigger', position: P(360, 20), data: { label: 'Customer sends a WhatsApp message' } },
       {
@@ -162,25 +162,25 @@ const TEMPLATES = [
         data: {
           provider: 'openai',
           model: 'gpt-4o-mini',
-          systemPrompt: 'You route inbound WhatsApp messages for a business. Choose the pricing route for cost or package questions, the booking route for appointment requests, the menu route when the user wants options or a list to choose from, the human route for complaints or explicit agent requests, and the fallback route for general FAQs.',
+          systemPrompt: 'You route inbound WhatsApp messages for a clinic. Choose the pricing route for fee or package questions, the booking route for appointment requests, the menu route when the patient wants options or departments, the human route for complaints or explicit staff requests, and the fallback route for general FAQs.',
           confidenceThreshold: 0.55,
           fallbackRoute: 'fallback',
           saveAs: 'router',
           routes: [
-            { id: 'route_1', label: 'Pricing buttons', description: 'Customer is asking about price, plans, packages, or a quote.' },
-            { id: 'route_2', label: 'Booking flow', description: 'Customer wants to book, schedule, reserve, or pick a time slot.' },
-            { id: 'route_3', label: 'Options list', description: 'Customer wants to browse services, menus, or available options before deciding.' },
-            { id: 'route_4', label: 'Human support', description: 'Customer is upset, needs custom help, or asks for a person or agent.' },
+            { id: 'route_1', label: 'Fees and pricing', description: 'Patient is asking about consultation fees, packages, or cost.' },
+            { id: 'route_2', label: 'Booking flow', description: 'Patient wants to book, reschedule, reserve, or pick a time slot.' },
+            { id: 'route_3', label: 'Clinic options', description: 'Patient wants to browse departments, visit types, or available options before deciding.' },
+            { id: 'route_4', label: 'Human support', description: 'Patient is upset, needs custom help, or asks for reception or a staff member.' },
             { id: 'fallback', label: 'FAQ fallback', description: 'General question or low-confidence case. Let AI answer normally.' },
           ],
         },
       },
-      { id: 'send-pricing', type: 'send', position: P(60, 380), data: { sendMode: 'buttons', message: 'Here are the fastest ways to move forward:', footer: 'Choose one option', title: '', buttons: [{ type: 'cta_url', label: 'View pricing', url: 'https://example.com/pricing' }, { type: 'quick_reply', label: 'Book a call', id: 'book_call' }], list: null, event: null, externalAdReply: null, template: null, product: null, carousel: null } },
+      { id: 'send-pricing', type: 'send', position: P(60, 380), data: { sendMode: 'buttons', message: 'Here are the fastest ways to move forward:', footer: 'Choose one option', title: '', buttons: [{ type: 'cta_url', label: 'View fees', url: 'https://example.com/fees' }, { type: 'quick_reply', label: 'Request callback', id: 'book_call' }], list: null, event: null, externalAdReply: null, template: null, product: null, carousel: null } },
       { id: 'book-1', type: 'booking', position: P(260, 380), data: { service: 'consultation', daysAhead: 5, startHour: 10, endHour: 18, intervalMins: 30, reminderHours: 24, message: 'Pick a time for your consultation:', confirmMessage: 'Your consultation is confirmed for {{slot}}.' } },
-      { id: 'send-menu', type: 'send', position: P(470, 380), data: { sendMode: 'list', message: 'Choose what you want help with next:', footer: 'Select one option', title: '', buttons: [], list: { title: 'Quick menu', buttonText: 'Open options', sections: [{ title: 'Popular actions', rows: [{ title: 'See services', description: 'Browse the main service categories', rowId: 'services' }, { title: 'See pricing', description: 'Get package and pricing details', rowId: 'pricing' }, { title: 'Talk to support', description: 'Get help from the team', rowId: 'support' }] }] }, event: null, externalAdReply: null, template: null, product: null, carousel: null } },
-      { id: 'send-agent', type: 'send', position: P(700, 380), data: { sendMode: 'text', message: 'I am connecting you to a team member now.', footer: '', title: '', buttons: [], list: null, event: null, externalAdReply: null, template: null, product: null, carousel: null } },
+      { id: 'send-menu', type: 'send', position: P(470, 380), data: { sendMode: 'list', message: 'Choose what you want help with next:', footer: 'Select one option', title: '', buttons: [], list: { title: 'Quick menu', buttonText: 'Open options', sections: [{ title: 'Popular actions', rows: [{ title: 'See departments', description: 'Browse visit categories and specialties', rowId: 'services' }, { title: 'See fees', description: 'Get consultation and package fee details', rowId: 'pricing' }, { title: 'Talk to reception', description: 'Get help from the clinic team', rowId: 'support' }] }] }, event: null, externalAdReply: null, template: null, product: null, carousel: null } },
+      { id: 'send-agent', type: 'send', position: P(700, 380), data: { sendMode: 'text', message: 'I am connecting you to the clinic team now.', footer: '', title: '', buttons: [], list: null, event: null, externalAdReply: null, template: null, product: null, carousel: null } },
       { id: 'handoff-1', type: 'handoff', position: P(700, 540), data: { reason: 'router escalation', note: 'AI router detected a support or escalation request.', assignee: '' } },
-      { id: 'ai-1', type: 'ai', position: P(920, 380), data: { provider: 'openai', model: 'gpt-4o-mini', systemPrompt: 'You are a concise WhatsApp assistant. Answer clearly, ask one follow-up question if needed, and invite the customer to ask for booking or pricing if relevant.' } },
+      { id: 'ai-1', type: 'ai', position: P(920, 380), data: { provider: 'openai', model: 'gpt-4o-mini', systemPrompt: 'You are a concise clinic WhatsApp assistant. Answer clearly, ask one follow-up question if needed, and invite the patient to ask for booking, fees, or reception help if relevant.' } },
     ],
     edges: [
       edge('trigger-1', 'router-1'),
@@ -277,9 +277,10 @@ const TEMPLATES = [
 ]
 
 const clone = (value) => JSON.parse(JSON.stringify(value))
+const enabledTemplateIds = new Set(['clinic-appointment-router', 'ai-smart-front-desk'])
 
 export const workflowTemplateList = () =>
-  TEMPLATES.map((template) => ({
+  TEMPLATES.filter((template) => enabledTemplateIds.has(template.id)).map((template) => ({
     id: template.id,
     name: template.name,
     industry: template.industry,

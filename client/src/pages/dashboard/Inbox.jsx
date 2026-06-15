@@ -34,7 +34,7 @@ export default function Inbox() {
   const active = conversations.find((c) => c.phone === activePhone)
 
   return (
-    <div className="flex h-[calc(100vh-7.5rem)] gap-4">
+    <div className="flex min-h-[42rem] gap-4">
       {/* Conversations list */}
       <div className="flex w-72 shrink-0 flex-col rounded-2xl border border-line bg-surface">
         <div className="border-b border-line p-3">
@@ -68,7 +68,7 @@ export default function Inbox() {
               <Spinner className="h-6 w-6 text-brand-600" />
             </div>
           ) : conversations.length === 0 ? (
-            <p className="p-6 text-center text-sm text-muted">No conversations yet.</p>
+            <p className="p-6 text-center text-sm text-muted">No patient conversations yet.</p>
           ) : (
             conversations.map((c) => (
               <button

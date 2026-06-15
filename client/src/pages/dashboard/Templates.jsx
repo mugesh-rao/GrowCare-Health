@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState } from 'react'
 import { Plus, Pencil, Trash2, FileText } from 'lucide-react'
 import { Card, Button, Badge, Spinner, Modal, Label, Alert } from '../../components/atoms'

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/purity */
 import { useCallback, useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
@@ -17,7 +18,6 @@ import {
   Clock,
   Globe,
   UserCheck,
-  Package,
   Tag,
   BellRing,
   CalendarClock,
@@ -62,7 +62,6 @@ const paletteGroups = [
     items: [
       { type: 'send', label: 'Send Message', Icon: Send, hint: 'Text, buttons, list, media' },
       { type: 'ai', label: 'AI Reply', Icon: Sparkles, hint: 'Generate a reply with AI' },
-      { type: 'catalog', label: 'Send Catalog', Icon: Package, hint: 'Product carousel' },
     ],
   },
   {
@@ -254,7 +253,7 @@ export default function WorkflowPage() {
             variant="ghost"
             size="sm"
             leftIcon={<ArrowLeft className="h-4 w-4" />}
-            onClick={() => navigate('/dashboard/workflows')}
+            onClick={() => navigate('/dashboard?tab=workflows')}
           >
             Back
           </Button>

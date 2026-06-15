@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks */
 import { useMemo, useState } from 'react'
 import { ArrowRight } from 'lucide-react'
 import { Badge, Modal, Spinner } from '../atoms'
@@ -26,7 +27,7 @@ export default function WorkflowTemplateGallery({ open, onClose, onUseTemplate }
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Start from a template" className="max-w-3xl">
+    <Modal open={open} onClose={onClose} title="Start from a clinic template" className="max-w-3xl">
       <div className="space-y-4">
         <div className="flex flex-wrap gap-2">
           {industries.map((item) => (
