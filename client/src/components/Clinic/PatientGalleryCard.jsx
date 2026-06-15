@@ -1,0 +1,88 @@
+import { Calendar, Stethoscope, ClipboardList, ArrowRight } from 'lucide-react'
+import PatientBadge from './PatientBadge'
+
+/** Generates a deterministic soft colour pair from a patient name. */
+function avatarColor(name) {
+  let hash = 0
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  const colors = [
+    { bg: 'bg-brand-100', text: 'text-brand-700' },
+    { bg: 'bg-emerald-100', text: 'text-emerald-700' },
+    { bg: 'bg-amber-100', text: 'text-amber-700' },
+    { bg: 'bg-rose-100', text: 'text-rose-700' },
+    { bg: 'bg-violet-100', text: 'text-violet-700' },
+    { bg: 'bg-cyan-100', text: 'text-cyan-700' },
+  ]
+  return colors[Math.abs(hash) % colors.length]
+}
+
+function initials(name) {
+  return name
+    .split(' ')
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
+}
+
+export default function PatientGalleryCard({ patient, onOpen }) {
+  const color = avatarColor(patient.name)
+  const appointmentCount = patient.appointments?.length ?? 0
+
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="group flex w-full flex-col rounded-2xl border border-line bg-white p-6 text-left transition-all duration-200 hover:border-brand-300 hover:shadow-lg hover:shadow-brand-100/40"
+    >
+      {/* ── Top row: avatar + name + badges ── */}
+      <div className="flex items-start gap-4">
+        <span
+          className={`grid h-12 w-12 shrink-0 place-items-center rounded-full text-sm font-bold ${color.bg} ${color.text}`}
+        >
+          {initials(patient.name)}
+        </span>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <h3 className="truncate font-display text-lg font-bold text-ink">{patient.name}</h3>
+            <ArrowRight className="ml-auto h-4 w-4 shrink-0 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-brand-500" />
+          </div>
+          <p className="mt-0.5 text-xs text-muted">
+            {patient.mrn} &middot; {patient.age}y &middot; {patient.gender}
+          </p>
+        </div>
+      </div>
+
+      {/* ── Condition summary ── */}
+      <p className="mt-4 line-clamp-2 text-sm leading-relaxed text-slate-600">
+        {patient.condition}
+      </p>
+
+      {/* ── Info chips ── */}
+      <div className="mt-4 grid grid-cols-3 gap-3">
+        <div className="flex items-center gap-1.5 text-xs text-muted">
+          <Calendar className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+          <span className="truncate">{patient.lastVisit}</span>
+        </div>
+        <div className="flex items-center gap-1.5 text-xs text-muted">
+          <ClipboardList className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+          <span>{appointmentCount} appt{appointmentCount !== 1 ? 's' : ''}</span>
+        </div>
+        <div className="flex items-center gap-1.5 text-xs text-muted">
+          <Stethoscope className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+          <span className="truncate">{patient.specialty}</span>
+        </div>
+      </div>
+
+      {/* ── Doctor + badges footer ── */}
+      <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
+        <p className="text-xs font-medium text-slate-500">{patient.doctor}</p>
+        <div className="flex shrink-0 gap-1.5">
+          <PatientBadge value={patient.status} />
+          <PatientBadge value={patient.risk} kind="risk" />
+        </div>
+      </div>
+    </button>
+  )
+}

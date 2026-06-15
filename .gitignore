@@ -3,4 +3,7 @@ node_modules
 .data
 service.json
 .codegraph
-/.codegraph
+/.codegraph\
+
+.playwright-mcp
+/.playwright-mcp

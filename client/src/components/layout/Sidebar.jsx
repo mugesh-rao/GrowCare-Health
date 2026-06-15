@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard,
   MessageSquareText,
+  Users,
   ChevronLeft,
   LogOut,
 } from 'lucide-react'
@@ -11,6 +12,7 @@ import { useAuth } from '../../context/AuthContext'
 
 const nav = [
   { to: '/dashboard', label: 'Dashboard', Icon: LayoutDashboard, end: true },
+  { to: '/dashboard/patients', label: 'Patients', Icon: Users },
   { to: '/dashboard/whatsapp', label: 'WhatsApp', Icon: MessageSquareText },
 ]
 

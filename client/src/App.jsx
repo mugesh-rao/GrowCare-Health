@@ -5,6 +5,9 @@ import OnboardingRoute from './routes/OnboardingRoute'
 import DashboardLayout from './components/layout/DashboardLayout'
 import Login from './pages/auth/Login'
 import Onboarding from './pages/Onboarding'
+import NewPatientPage from './pages/Clinic/NewPatientPage'
+import PatientDetailPage from './pages/Clinic/PatientDetailPage'
+import PatientsPage from './pages/Clinic/PatientsPage'
 import DashboardHub from './pages/dashboard/DashboardHub'
 import WhatsAppHub from './pages/dashboard/WhatsAppHub'
 import WorkflowPage from './pages/WorkflowPage'
@@ -36,6 +39,9 @@ export default function App() {
           >
             <Route index element={<DashboardHub />} />
             <Route path="whatsapp" element={<WhatsAppHub />} />
+            <Route path="patients" element={<PatientsPage />} />
+            <Route path="patients/new" element={<NewPatientPage />} />
+            <Route path="patients/:patientId" element={<PatientDetailPage />} />
             <Route path="inbox" element={<Navigate to="/dashboard/whatsapp?tab=inbox" replace />} />
             <Route path="workflows" element={<Navigate to="/dashboard?tab=workflows" replace />} />
             <Route path="bookings" element={<Navigate to="/dashboard?tab=bookings" replace />} />
