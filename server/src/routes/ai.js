@@ -1,0 +1,27 @@
+const express = require('express')
+const { auth } = require('../middleware/auth')
+const { publicProviders } = require('../config/ai')
+const ai = require('../services/aiService')
+
+const router = express.Router()
+router.use(auth)
+
+// GET /api/ai/providers — dynamic provider list for the workflow AI node.
+router.get('/providers', (req, res) => {
+  res.json({ providers: publicProviders() })
+})
+
+// POST /api/ai/models { provider, apiKey, baseURL } — live model list (proxied
+// server-side to avoid CORS / exposing keys). Falls back to defaults on error.
+router.post('/models', async (req, res) => {
+  const { provider, apiKey, baseURL } = req.body || {}
+  try {
+    const models = await ai.fetchModels({ provider, apiKey, baseURL })
+    res.json({ models })
+  } catch (e) {
+    const { PROVIDERS } = require('../config/ai')
+    res.json({ models: PROVIDERS[provider]?.models || [], error: e.message })
+  }
+})
+
+module.exports = router

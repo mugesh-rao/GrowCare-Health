@@ -1,0 +1,31 @@
+import {
+  TriggerNode,
+  ConditionNode,
+  AINode,
+  RouterNode,
+  SendNode,
+  ApiNode,
+  DelayNode,
+  HandoffNode,
+  CatalogNode,
+  SetFieldNode,
+  ScheduleNode,
+  BookingNode,
+  PaymentNode,
+} from './nodes'
+
+export const nodeTypes = {
+  trigger: TriggerNode,
+  condition: ConditionNode,
+  ai: AINode,
+  router: RouterNode,
+  send: SendNode,
+  api: ApiNode,
+  delay: DelayNode,
+  handoff: HandoffNode,
+  catalog: CatalogNode,
+  set: SetFieldNode,
+  schedule: ScheduleNode,
+  booking: BookingNode,
+  payment: PaymentNode,
+}

@@ -1,0 +1,6 @@
+node_modules
+.env
+.data
+service.json
+.codegraph
+/.codegraph

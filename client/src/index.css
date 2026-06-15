@@ -1,0 +1,113 @@
+@import "tailwindcss";
+
+/* ============================================================
+   GROWTO — DESIGN TOKENS (Tailwind v4 @theme)
+   Green & black theme. No shadows — borders define structure.
+   ============================================================ */
+@theme {
+  /* Brand — green */
+  --color-brand-50: #f0fdf4;
+  --color-brand-100: #dcfce7;
+  --color-brand-200: #bbf7d0;
+  --color-brand-300: #86efac;
+  --color-brand-400: #4ade80;
+  --color-brand-500: #22c55e;
+  --color-brand-600: #16a34a;
+  --color-brand-700: #15803d;
+  --color-brand-800: #166534;
+  --color-brand-900: #14532d;
+
+  /* Black / night surfaces (sidebar, dark accents) */
+  --color-night-700: #11201a;
+  --color-night-800: #0d1813;
+  --color-night-900: #08110d;
+
+  /* Surface / neutrals */
+  --color-ink: #0b1410;
+  --color-muted: #64746c;
+  --color-line: #e6ebe8;
+  --color-surface: #ffffff;
+  --color-canvas: #f6f8f7;
+
+  /* Fonts */
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
+
+  /* Radius */
+  --radius-xl: 0.875rem;
+  --radius-2xl: 1.25rem;
+
+  /* Shadows removed — kept as `none` so any leftover refs are flat. */
+  --shadow-soft: none;
+  --shadow-card: none;
+  --shadow-pop: none;
+}
+
+/* ============================================================
+   BASE
+   ============================================================ */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  background: var(--color-canvas);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5d0;
+  border-radius: 9999px;
+  border: 2px solid var(--color-canvas);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #9aa8a0;
+}
+
+/* ============================================================
+   COMPONENTIZED UTILITY CLASSES — flat (no shadows)
+   ============================================================ */
+@layer components {
+  .input-base {
+    @apply w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm text-ink
+      placeholder:text-slate-400 transition
+      focus:border-brand-500 focus:ring-4 focus:ring-brand-500/15 focus:outline-none
+      disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400;
+  }
+  .input-error {
+    @apply border-red-400 focus:border-red-500 focus:ring-red-500/15;
+  }
+
+  .btn-base {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl text-sm font-semibold
+      transition-all duration-150 select-none
+      focus-visible:outline-none focus-visible:ring-4
+      disabled:cursor-not-allowed disabled:opacity-60 active:scale-[0.98];
+  }
+
+  /* Flat card — border only, no shadow */
+  .card {
+    @apply rounded-2xl border border-line bg-surface;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-wider text-brand-600;
+  }
+}
