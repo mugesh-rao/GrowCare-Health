@@ -1,6 +1,7 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { Send, Bot, BotOff, Search, StickyNote, X, Plus } from 'lucide-react'
-import { Button, Badge, Spinner, Label } from '../../components/atoms'
+import { Send, Bot, BotOff, Search, StickyNote, X, Plus, Trash2 } from 'lucide-react'
+import { Button, Badge, Spinner, Label, Alert } from '../../components/atoms'
 import useRealtime from '../../hooks/useRealtime'
 import inboxService from '../../services/inboxService'
 
@@ -13,6 +14,7 @@ export default function Inbox() {
   const [filter, setFilter] = useState('all')
   const [query, setQuery] = useState('')
   const [activePhone, setActivePhone] = useState(null)
+  const [deleteError, setDeleteError] = useState('')
 
   const load = useCallback(async () => {
     const params = {}
@@ -21,6 +23,14 @@ export default function Inbox() {
     setConversations(await inboxService.conversations(params))
     setLoading(false)
   }, [filter, query])
+
+  const deleteConversation = async (phone) => {
+    setDeleteError('')
+    await inboxService.deleteConversation(phone)
+    setConversations((prev) => prev.filter((c) => c.phone !== phone))
+    if (activePhone === phone) setActivePhone(null)
+    await load()
+  }
 
   useEffect(() => {
     load()
@@ -34,9 +44,9 @@ export default function Inbox() {
   const active = conversations.find((c) => c.phone === activePhone)
 
   return (
-    <div className="flex min-h-[42rem] gap-4">
+    <div className="flex h-[calc(100vh-12rem)] min-h-[34rem] max-h-[48rem] gap-4 overflow-hidden">
       {/* Conversations list */}
-      <div className="flex w-72 shrink-0 flex-col rounded-2xl border border-line bg-surface">
+      <div className="flex min-h-0 w-72 shrink-0 flex-col rounded-2xl border border-line bg-surface">
         <div className="border-b border-line p-3">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -62,7 +72,7 @@ export default function Inbox() {
             ))}
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto">
           {loading ? (
             <div className="grid place-items-center py-10">
               <Spinner className="h-6 w-6 text-brand-600" />
@@ -74,6 +84,7 @@ export default function Inbox() {
               <button
                 key={c.phone}
                 onClick={() => {
+                  setDeleteError('')
                   setActivePhone(c.phone)
                   inboxService.markRead(c.phone).then(load)
                 }}
@@ -107,7 +118,13 @@ export default function Inbox() {
       {/* Thread + details */}
       {active ? (
         <>
-          <Thread key={active.phone} conversation={active} onChanged={load} />
+          <Thread
+            key={active.phone}
+            conversation={active}
+            onDelete={deleteConversation}
+            deleteError={deleteError}
+            setDeleteError={setDeleteError}
+          />
           <Details key={'d-' + active.phone} conversation={active} onChanged={load} />
         </>
       ) : (
@@ -158,7 +175,7 @@ function Details({ conversation, onChanged }) {
   const attrs = conversation.attributes || {}
 
   return (
-    <div className="flex w-72 shrink-0 flex-col gap-4 overflow-y-auto rounded-2xl border border-line bg-surface p-4">
+    <div className="flex min-h-0 w-72 shrink-0 flex-col gap-4 overflow-y-auto rounded-2xl border border-line bg-surface p-4">
       {/* Bot control */}
       <div>
         <Label>Automation</Label>
@@ -250,11 +267,12 @@ function Details({ conversation, onChanged }) {
   )
 }
 
-function Thread({ conversation, onChanged }) {
+function Thread({ conversation, onDelete, deleteError, setDeleteError }) {
   const phone = conversation.phone
   const [messages, setMessages] = useState([])
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const scrollRef = useRef(null)
 
   const loadMessages = useCallback(async () => {
@@ -285,19 +303,47 @@ function Thread({ conversation, onChanged }) {
     }
   }
 
+  const remove = async () => {
+    const label = conversation.name || `+${phone}`
+    const ok = window.confirm(`Delete ${label} and all chat history? This cannot be undone.`)
+    if (!ok) return
+
+    setDeleting(true)
+    setDeleteError('')
+    try {
+      await onDelete(phone)
+    } catch (error) {
+      setDeleteError(error.message || 'Unable to delete this conversation.')
+      setDeleting(false)
+    }
+  }
+
   return (
-    <div className="flex min-w-0 flex-1 flex-col rounded-2xl border border-line bg-surface">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col rounded-2xl border border-line bg-surface">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-line px-4 py-3">
         <div>
           <p className="font-semibold text-ink">{conversation.name || phone}</p>
           <p className="text-xs text-muted">+{phone}</p>
         </div>
-        <Badge tone={statusTone[conversation.status || 'open']}>{conversation.status || 'open'}</Badge>
+        <div className="flex items-center gap-2">
+          <Badge tone={statusTone[conversation.status || 'open']}>{conversation.status || 'open'}</Badge>
+          <Button
+            size="sm"
+            variant="danger"
+            loading={deleting}
+            leftIcon={<Trash2 className="h-4 w-4" />}
+            onClick={remove}
+          >
+            Delete
+          </Button>
+        </div>
       </div>
 
+      {deleteError && <Alert tone="error" className="m-3 mb-0">{deleteError}</Alert>}
+
       {/* Messages */}
-      <div ref={scrollRef} className="flex-1 space-y-2 overflow-y-auto bg-canvas p-4">
+      <div ref={scrollRef} className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-canvas p-4">
         {messages.map((m) => (
           <div key={m.id} className={'flex ' + (m.direction === 'out' ? 'justify-end' : 'justify-start')}>
             <div

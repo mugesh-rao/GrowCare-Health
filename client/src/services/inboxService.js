@@ -1,4 +1,5 @@
 import api from './api'
+import conversationDataService from './conversationDataService'
 
 const inboxService = {
   async conversations(params = {}) {
@@ -34,6 +35,9 @@ const inboxService = {
   async addNote(phone, body) {
     const { data } = await api.post(`/inbox/conversations/${phone}/notes`, { body })
     return data.note
+  },
+  async deleteConversation(phone) {
+    await conversationDataService.deleteConversation(phone)
   },
 }
 

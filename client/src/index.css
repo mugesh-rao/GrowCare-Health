@@ -111,3 +111,9 @@ body {
     @apply text-xs font-semibold uppercase tracking-wider text-brand-600;
   }
 }
+
+/* Waveform bar animation used in StartVisitPanel recording state */
+@keyframes wave {
+  0%   { transform: scaleY(0.4); }
+  100% { transform: scaleY(1.0); }
+}

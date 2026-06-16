@@ -7,6 +7,8 @@ import {
   ChevronRight,
   ChevronUp,
   HeartPulse,
+  MessageCircle,
+  TriangleAlert,
 } from 'lucide-react'
 import { Badge } from '../atoms'
 
@@ -15,12 +17,15 @@ const specialtyGlyph = {
   Ophthalmology: '👁️',
   Oncology: '🧬',
   Cardiology: '🫀',
+  Neurology: '🧠',
+  Dermatology: '🫧',
+  'General Medicine': '🩺',
 }
 
 const metricTone = { success: 'success', warning: 'warning', danger: 'danger' }
 const alertTone = { info: 'brand', warning: 'warning', danger: 'danger' }
 
-function Section({ title, Icon, children, defaultOpen = true }) {
+function Section({ title, Icon, children, defaultOpen = true, badge }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
     <div className="border-b border-line last:border-b-0">
@@ -31,6 +36,7 @@ function Section({ title, Icon, children, defaultOpen = true }) {
         <div className="flex items-center gap-2">
           <Icon className="h-4 w-4 text-brand-600" />
           <span className="text-sm font-semibold text-ink">{title}</span>
+          {badge}
         </div>
         {open ? (
           <ChevronUp className="h-4 w-4 text-muted" />
@@ -44,6 +50,9 @@ function Section({ title, Icon, children, defaultOpen = true }) {
 }
 
 export default function PatientSummarySidebar({ patient, collapsed, onToggle }) {
+  const flaggedAlerts = patient.betweenVisitAlerts?.filter((a) => a.flagged) ?? []
+  const hasAlerts = flaggedAlerts.length > 0
+
   return (
     <div
       className={
@@ -101,6 +110,11 @@ export default function PatientSummarySidebar({ patient, collapsed, onToggle }) 
         <div className="flex flex-1 flex-col items-center gap-3 pt-5">
           <span className="text-xl">{specialtyGlyph[patient.specialty] || '🩺'}</span>
           <span className="text-[10px] font-semibold text-muted">{patient.mrn}</span>
+          {hasAlerts && (
+            <span className="grid h-5 w-5 place-items-center rounded-full bg-amber-500 text-[10px] font-bold text-white">
+              {flaggedAlerts.length}
+            </span>
+          )}
         </div>
       )}
 
@@ -132,7 +146,67 @@ export default function PatientSummarySidebar({ patient, collapsed, onToggle }) 
             </div>
           </Section>
 
-          <Section title="Active flags" Icon={AlertTriangle} defaultOpen={patient.alerts.some((a) => a.tone === 'danger')}>
+          {/* Between-visit activity */}
+          {patient.betweenVisitAlerts?.length > 0 && (
+            <Section
+              title="Between-visit activity"
+              Icon={MessageCircle}
+              defaultOpen={hasAlerts}
+              badge={
+                hasAlerts ? (
+                  <span className="ml-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">
+                    {flaggedAlerts.length} flagged
+                  </span>
+                ) : null
+              }
+            >
+              <div className="space-y-2">
+                {patient.betweenVisitAlerts.map((alert, i) => (
+                  <div
+                    key={i}
+                    className={
+                      'overflow-hidden rounded-2xl border ' +
+                      (alert.flagged
+                        ? 'border-amber-200 bg-amber-50'
+                        : 'border-line bg-canvas')
+                    }
+                  >
+                    <div className="px-4 py-2.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
+                          {alert.checkInDay} · {alert.date}
+                        </p>
+                        {alert.flagged && (
+                          <span className="flex items-center gap-1 text-[10px] font-bold text-amber-700">
+                            <TriangleAlert className="h-3 w-3" /> Flagged
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-1 text-[12px] text-muted">{alert.question}</p>
+                      <p
+                        className={
+                          'mt-1.5 text-[12px] font-semibold ' +
+                          (alert.patientResponse === 'No response'
+                            ? 'text-slate-400 italic'
+                            : alert.flagged
+                            ? 'text-amber-900'
+                            : 'text-ink')
+                        }
+                      >
+                        {alert.flagged && '⚠️ '}{alert.patientResponse}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Section>
+          )}
+
+          <Section
+            title="Active flags"
+            Icon={AlertTriangle}
+            defaultOpen={patient.alerts.some((a) => a.tone === 'danger')}
+          >
             <div className="space-y-2">
               {patient.alerts.map((alert) => (
                 <div

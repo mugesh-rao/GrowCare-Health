@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { CalendarClock, ChevronLeft } from 'lucide-react'
+import { CalendarClock, ChevronLeft, Mic } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Button, Card } from '../../components/atoms'
 import PatientChatWorkspace from '../../components/Clinic/PatientChatWorkspace'
 import PatientSummarySidebar from '../../components/Clinic/PatientSummarySidebar'
+import StartVisitPanel from '../../components/Clinic/StartVisitPanel'
 import VisitsPanel from '../../components/Clinic/VisitsPanel'
 import useHeaderActions from '../../hooks/useHeaderActions'
 import { getClinicPatientById } from '../../lib/clinicData'
@@ -13,6 +14,7 @@ export default function PatientDetailPage() {
   const { patientId } = useParams()
   const [leftCollapsed, setLeftCollapsed] = useState(false)
   const [rightCollapsed, setRightCollapsed] = useState(false)
+  const [inVisitMode, setInVisitMode] = useState(false)
   const patient = getClinicPatientById(patientId)
 
   useHeaderActions(
@@ -24,9 +26,30 @@ export default function PatientDetailPage() {
       >
         All patients
       </Button>
-      <Button variant="secondary" leftIcon={<CalendarClock className="h-4 w-4" />}>
-        Schedule follow-up
-      </Button>
+      {!inVisitMode && (
+        <>
+          <Button
+            variant="secondary"
+            leftIcon={<CalendarClock className="h-4 w-4" />}
+          >
+            Schedule follow-up
+          </Button>
+          <Button
+            leftIcon={<Mic className="h-4 w-4" />}
+            onClick={() => setInVisitMode(true)}
+          >
+            Start visit
+          </Button>
+        </>
+      )}
+      {inVisitMode && (
+        <Button
+          variant="secondary"
+          onClick={() => setInVisitMode(false)}
+        >
+          Exit visit mode
+        </Button>
+      )}
     </div>,
   )
 
@@ -39,6 +62,10 @@ export default function PatientDetailPage() {
         </Card.Body>
       </Card>
     )
+  }
+
+  if (inVisitMode) {
+    return <StartVisitPanel patient={patient} onClose={() => setInVisitMode(false)} />
   }
 
   return (
