@@ -19,7 +19,10 @@ function devPort() {
 }
 
 function devConfig(port = devPort()) {
-  return { baseUrl: `http://127.0.0.1:${port}`, wsUrl: `ws://127.0.0.1:${port}` }
+  // REST clients address route modules such as `/flows`; keep the `/api`
+  // namespace in this single shared base URL. WebSocket traffic remains at
+  // the loopback root (`/ws`).
+  return { baseUrl: `http://127.0.0.1:${port}/api`, wsUrl: `ws://127.0.0.1:${port}` }
 }
 
 async function activeDevConfig() {

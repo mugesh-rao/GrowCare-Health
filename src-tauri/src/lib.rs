@@ -27,7 +27,11 @@ struct LocalServerConfig {
 impl LocalServerConfig {
     fn for_port(port: u16) -> Self {
         LocalServerConfig {
-            base_url: format!("http://127.0.0.1:{port}"),
+            // REST calls in the React client use relative route paths such as
+            // `/flows`, so the shared native configuration must include the
+            // Express API namespace. The websocket endpoint deliberately
+            // stays at `/ws` on the loopback root.
+            base_url: format!("http://127.0.0.1:{port}/api"),
             ws_url: format!("ws://127.0.0.1:{port}"),
         }
     }
