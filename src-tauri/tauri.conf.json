@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "identifier": "com.growcare.desktop",
   "build": {
-    "beforeDevCommand": "npm run prepare:desktop && npm --prefix client run dev",
+    "beforeDevCommand": "npm run prepare:desktop && npm --prefix client run dev:web",
     "beforeBuildCommand": "npm run prepare:desktop && npm --prefix client run build",
     "devUrl": "http://localhost:5173",
     "frontendDist": "../client/dist"
@@ -21,6 +21,7 @@
         "resizable": true,
         "maximizable": true,
         "minimizable": true,
+        "decorations": false,
         "visible": false
       }
     ],

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import Header from './Header'
+import { ScribeWidget } from '../Clinic'
 
 const meta = {
   '/dashboard': { title: 'Dashboard', subtitle: 'Clinic operations, appointments, and workflow automation' },
@@ -63,6 +64,7 @@ export default function DashboardLayout() {
             <Outlet context={{ setActions }} />
           </div>
         </main>
+        <ScribeWidget />
       </div>
     </div>
   )

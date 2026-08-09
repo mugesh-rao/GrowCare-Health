@@ -3,6 +3,7 @@ import { ChevronLeft, FileImage, FilePlus2, FileText, FlaskConical } from 'lucid
 import { useNavigate } from 'react-router-dom'
 import { Button, Input, Label } from '../../components/atoms'
 import useHeaderActions from '../../hooks/useHeaderActions'
+import { clinicalApi } from '../../services/clinicalApi'
 
 const SPECIALTIES = [
   { value: 'Endocrinology', glyph: '🧪' },
@@ -41,6 +42,8 @@ export default function NewPatientPage() {
   const navigate = useNavigate()
   const [form, setForm] = useState(initial)
   const [files, setFiles] = useState({})
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
   useHeaderActions(
     <div className="flex items-center gap-2">
@@ -51,6 +54,28 @@ export default function NewPatientPage() {
   )
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  const createPatient = async () => {
+    if (!form.name.trim()) {
+      setError('Enter the patient name before creating the record.')
+      return
+    }
+    setSaving(true)
+    setError('')
+    try {
+      const patient = await clinicalApi.createPatient(form)
+      const selectedFiles = Object.entries(files).filter(([, file]) => file)
+      await Promise.all(selectedFiles.map(async ([kind, file]) => {
+        const sourceText = file.type.startsWith('text/') ? await file.text() : `Uploaded ${file.name}. Review the original file in the local clinic workspace.`
+        return clinicalApi.addArtifact(patient.id, { fileName: file.name, kind, mimeType: file.type, sourceText })
+      }))
+      navigate(`/dashboard/patients/${patient.id}`)
+    } catch (requestError) {
+      setError(requestError.message)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -215,8 +240,9 @@ export default function NewPatientPage() {
 
           <div className="border-t border-line" />
 
-          <Button fullWidth size="lg" leftIcon={<FilePlus2 className="h-5 w-5" />}>
-            Create patient
+          {error && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+          <Button fullWidth size="lg" leftIcon={<FilePlus2 className="h-5 w-5" />} onClick={createPatient} disabled={saving}>
+            {saving ? 'Creating local record…' : 'Create patient'}
           </Button>
         </div>
 

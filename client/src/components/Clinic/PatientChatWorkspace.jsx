@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { clinicalApi } from '../../services/clinicalApi'
 import {
   ArrowUp,
   CalendarClock,
@@ -302,14 +303,21 @@ function ChatView({ patient }) {
   const [messages, setMessages] = useState(patient.chat || [])
   const [input, setInput] = useState('')
 
-  const send = () => {
+  const send = async () => {
     if (!input.trim()) return
+    const question = input.trim()
     setMessages((m) => [
       ...m,
-      { role: 'user', text: input.trim() },
+      { role: 'user', text: question },
       { role: 'assistant', text: 'Reviewing the full record and all attached sources. Please hold on.' },
     ])
     setInput('')
+    try {
+      const answer = await clinicalApi.askRecord(patient.id, question)
+      setMessages((messages) => [...messages.slice(0, -1), { role: 'assistant', text: answer }])
+    } catch (error) {
+      setMessages((messages) => [...messages.slice(0, -1), { role: 'assistant', text: `I could not read the local clinical record: ${error.message}` }])
+    }
   }
 
   return (
@@ -418,8 +426,30 @@ function VisitWiseView({ patient }) {
 
 /* ── Progression canvas tab ──────────────────────────────────────── */
 function ProgressionCanvas({ patient }) {
-  const patientCards = reportCardsByPatient[patient.id] || {}
-  const hasAnyCards = Object.values(patientCards).some((arr) => arr.length > 0)
+  // New records come from the local SQLite clinical API. The legacy cards
+  // remain only as a compatibility fallback for any old, static mock route.
+  const storedObservations = patient.chart?.observations || []
+  const storedArtifacts = patient.chart?.artifacts || []
+  const patientCards = patient.chart ? {} : (reportCardsByPatient[patient.id] || {})
+  const storedCards = [
+    ...storedArtifacts.map((artifact) => ({
+      type: 'note', title: artifact.fileName, text: artifact.sourceText?.slice(0, 700) || 'Local source saved. Add report text to extract values.',
+    })),
+    ...Object.values(storedObservations.reduce((groups, observation) => {
+      const source = observation.source || 'Extracted clinical observations'
+      groups[source] = groups[source] || []
+      groups[source].push(observation)
+      return groups
+    }, {})).map((observations) => ({
+      type: 'lab', title: observations[0].source || 'Extracted observations',
+      values: observations.map((observation) => ({
+        name: observation.name,
+        value: `${observation.value}${observation.unit ? ` ${observation.unit}` : ''}`,
+        status: observation.status,
+      })),
+    })),
+  ]
+  const hasAnyCards = storedCards.length > 0 || Object.values(patientCards).some((arr) => arr.length > 0)
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -441,6 +471,12 @@ function ProgressionCanvas({ patient }) {
           <p className="mt-1 text-xs text-muted">
             Upload lab reports, imaging, or prescriptions to see the progression canvas.
           </p>
+        </div>
+      )}
+
+      {storedCards.length > 0 && (
+        <div className="grid grid-cols-1 gap-3 px-5 pt-4 sm:grid-cols-2">
+          {storedCards.map((card, index) => <ReportCard key={`${card.title}-${index}`} card={card} />)}
         </div>
       )}
 

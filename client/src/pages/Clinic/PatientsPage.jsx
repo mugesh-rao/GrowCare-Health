@@ -1,15 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Plus, Search, Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Button, Card, Input } from '../../components/atoms'
 import { PatientGalleryCard } from '../../components/Clinic'
-import {
-  clinicPatients,
-  clinicSummaryStats,
-  filterClinicPatients,
-  specialtyOptions,
-  statusOptions,
-} from '../../lib/clinicData'
+import { specialtyOptions, statusOptions } from '../../lib/clinicData'
+import { clinicalApi } from '../../services/clinicalApi'
 
 const statIcon = { total: '🏥', active: '⚡', flagged: '🔴', between_visit: '💬' }
 
@@ -20,8 +15,35 @@ export default function PatientsPage() {
     status: 'All statuses',
     specialty: 'All specialties',
   })
+  const [patients, setPatients] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
-  const filteredPatients = filterClinicPatients(clinicPatients, filters)
+  useEffect(() => {
+    let active = true
+    clinicalApi.listPatients()
+      .then((records) => { if (active) setPatients(records) })
+      .catch((requestError) => { if (active) setError(requestError.message) })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [])
+
+  const filteredPatients = useMemo(() => {
+    const query = filters.query.trim().toLowerCase()
+    return patients.filter((patient) => {
+      const haystack = `${patient.name} ${patient.mrn} ${patient.condition} ${patient.specialty}`.toLowerCase()
+      return (!query || haystack.includes(query)) &&
+        (filters.status === 'All statuses' || patient.status === filters.status) &&
+        (filters.specialty === 'All specialties' || patient.specialty === filters.specialty)
+    })
+  }, [filters, patients])
+
+  const clinicSummaryStats = [
+    { id: 'total', label: 'Total patients', value: patients.length, detail: 'Stored in this local workspace' },
+    { id: 'active', label: 'Active treatment', value: patients.filter((patient) => patient.status === 'Active').length, detail: 'Patients with ongoing care plans' },
+    { id: 'flagged', label: 'Flagged records', value: patients.filter((patient) => patient.alerts?.some((alert) => alert.tone === 'danger')).length, detail: 'Need clinician attention' },
+    { id: 'between_visit', label: 'Clinical alerts', value: patients.reduce((total, patient) => total + (patient.alerts?.length || 0), 0), detail: 'Results and between-visit review items' },
+  ]
 
   const setFilter = (field, value) => {
     setFilters((current) => ({ ...current, [field]: value }))
@@ -123,10 +145,14 @@ export default function PatientsPage() {
       </Card>
 
       {/* ── Patient cards grid ── */}
-      {filteredPatients.length === 0 ? (
+      {loading ? (
+        <div className="rounded-2xl border border-line bg-white px-8 py-16 text-center text-sm text-muted">Loading local clinical records…</div>
+      ) : error ? (
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-8 py-8 text-center text-sm text-red-700">Could not load local records: {error}</div>
+      ) : filteredPatients.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-line bg-white px-8 py-16 text-center">
-          <p className="text-lg font-semibold text-ink">No patients match your filters</p>
-          <p className="mt-2 text-sm text-muted">Try adjusting the search or filter above.</p>
+          <p className="text-lg font-semibold text-ink">No local patient records yet</p>
+          <p className="mt-2 text-sm text-muted">Create a patient to start a database-backed clinical timeline.</p>
         </div>
       ) : (
         <div className="w-full grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">

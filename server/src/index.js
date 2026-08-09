@@ -19,7 +19,10 @@ app.use((req, res, next) => {
   if (req.method === 'OPTIONS') return res.sendStatus(204)
   next()
 })
-app.use(express.json({ limit: '2mb' }))
+// Report text and short consultation audio snippets are sent directly to the
+// local process.  They never leave the desktop application unless a clinic
+// explicitly configures one of its existing external integrations.
+app.use(express.json({ limit: '15mb' }))
 
 // GrowCare is a single-user, local desktop application. Every request belongs
 // to its local workspace; there is no account sign-in or authentication layer.
@@ -47,6 +50,7 @@ app.use('/api/ai', require('./routes/ai'))
 app.use('/api/inbox', require('./routes/inbox'))
 app.use('/api/products', require('./routes/products'))
 app.use('/api/bookings', require('./routes/bookings'))
+app.use('/api/clinical', require('./routes/clinical'))
 
 const server = http.createServer(app)
 realtime.attach(server)

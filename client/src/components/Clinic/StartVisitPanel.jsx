@@ -125,7 +125,7 @@ function GeneratingView() {
   )
 }
 
-function ReviewingView({ note, patient, onPreview, setNote }) {
+function ReviewingView({ note, onPreview, setNote }) {
   const warningRx = note.prescriptions.filter((r) => r.warning)
 
   const field = (label, key, rows = 2) => (
@@ -441,7 +441,6 @@ export default function StartVisitPanel({ patient, onClose }) {
           {phase === 'reviewing' && note && (
             <ReviewingView
               note={note}
-              patient={patient}
               onPreview={() => setPhase('preview')}
               setNote={setNote}
             />

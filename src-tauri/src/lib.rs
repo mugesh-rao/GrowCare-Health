@@ -2,7 +2,7 @@ use serde::Serialize;
 use std::{
     fs,
     net::TcpStream,
-    process::{Child, Command},
+    process::{Child, Command, Stdio},
     sync::Mutex,
     thread,
     time::Duration,
@@ -43,14 +43,35 @@ fn start_local_server(app: &tauri::App) -> Result<Child, String> {
         return Err("The embedded local server is missing. Rebuild the GrowCare installer.".into());
     }
 
-    Command::new(node)
+    let mut child = Command::new(node)
         .arg(entrypoint)
         .current_dir(server_dir)
         .env("HOST", "127.0.0.1")
         .env("PORT", SERVER_PORT.to_string())
-        .env("APP_DATA_DIR", app_data_dir)
+        .env("APP_DATA_DIR", &app_data_dir)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
         .spawn()
-        .map_err(|error| format!("Unable to start GrowCare's local server: {error}"))
+        .map_err(|error| format!("Unable to start GrowCare's local server: {error}"))?;
+
+    if let Some(mut output) = child.stdout.take() {
+        let log_path = app_data_dir.join("local-server.stdout.log");
+        thread::spawn(move || {
+            if let Ok(mut log) = fs::File::create(log_path) {
+                let _ = std::io::copy(&mut output, &mut log);
+            }
+        });
+    }
+    if let Some(mut output) = child.stderr.take() {
+        let log_path = app_data_dir.join("local-server.stderr.log");
+        thread::spawn(move || {
+            if let Ok(mut log) = fs::File::create(log_path) {
+                let _ = std::io::copy(&mut output, &mut log);
+            }
+        });
+    }
+
+    Ok(child)
 }
 
 fn wait_for_local_server() {
