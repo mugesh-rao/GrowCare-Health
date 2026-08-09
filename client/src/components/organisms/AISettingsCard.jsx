@@ -22,7 +22,7 @@ function Toggle({ checked, onChange }) {
 export default function AISettingsCard() {
   const [settings, setSettings] = useState(null)
   const [apiKey, setApiKey] = useState('')
-  const [model, setModel] = useState('gpt-4.1-mini')
+  const [model, setModel] = useState('gpt-5.6-luna')
   const [useForScribing, setUseForScribing] = useState(false)
   const [showKey, setShowKey] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -34,7 +34,7 @@ export default function AISettingsCard() {
     userService.getAiSettings()
       .then((next) => {
         setSettings(next)
-        setModel(next.model || 'gpt-4.1-mini')
+        setModel(next.model || 'gpt-5.6-luna')
         setUseForScribing(Boolean(next.useForScribing))
       })
       .catch((requestError) => setError(requestError.message || 'Could not load local AI settings.'))
@@ -111,7 +111,7 @@ export default function AISettingsCard() {
           </div>
           <div className="sm:w-1/2">
             <Label>Default model</Label>
-            <input className="input-base" value={model} onChange={(event) => setModel(event.target.value)} placeholder="gpt-4.1-mini" />
+            <input className="input-base" value={model} onChange={(event) => setModel(event.target.value)} placeholder="gpt-5.6-luna" />
           </div>
           <div className="flex items-start justify-between gap-4 rounded-xl border border-line bg-canvas px-4 py-3">
             <div><p className="text-sm font-medium text-ink">Use for scribe drafts</p><p className="mt-0.5 text-xs text-muted">When enabled, a consented transcript is sent to OpenAI to prepare a clinician-review draft. If it fails or is disabled, GrowCare uses its local draft instead.</p></div>

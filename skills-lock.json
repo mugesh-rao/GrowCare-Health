@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "openai-docs": {
+      "source": "openai/skills",
+      "sourceType": "github",
+      "skillPath": "skills/.curated/openai-docs/SKILL.md",
+      "computedHash": "80d1836b9c7cdee24521c47e33a77cbf02b34783267f5a7e32c41557170fa6dd"
+    },
     "tauri-development": {
       "source": "mindrally/skills",
       "sourceType": "github",

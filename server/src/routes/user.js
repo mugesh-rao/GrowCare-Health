@@ -36,7 +36,7 @@ router.get('/ai-settings', async (req, res) => {
   res.json({
     settings: {
       hasApiKey: Boolean(settings.apiKey),
-      model: settings.model || 'gpt-4.1-mini',
+      model: settings.model || 'gpt-5.6-luna',
       useForScribing: Boolean(settings.useForScribing),
     },
   })
@@ -54,7 +54,7 @@ router.put('/ai-settings', async (req, res) => {
     : body.apiKey === undefined
       ? String(previous.apiKey || '')
       : String(body.apiKey || '').trim()
-  const model = String(body.model || previous.model || 'gpt-4.1-mini').trim() || 'gpt-4.1-mini'
+  const model = String(body.model || previous.model || 'gpt-5.6-luna').trim() || 'gpt-5.6-luna'
   const useForScribing = body.useForScribing === undefined
     ? Boolean(previous.useForScribing)
     : Boolean(body.useForScribing)
