@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 /* eslint-disable react-hooks/purity */
 import { useCallback, useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
@@ -24,6 +25,8 @@ import {
   CreditCard,
   Check,
   Save,
+  AlertCircle,
+  RefreshCw,
 } from 'lucide-react'
 import { Button, Badge, Spinner, Logo } from '../components/atoms'
 import { nodeTypes } from '../components/workflow/nodeTypes'
@@ -133,14 +136,14 @@ function defaultNodeData(type) {
   if (type === 'handoff') {
     return { reason: 'requested', note: 'Customer asked for a human.', assignee: '' }
   }
-  if (type === 'catalog') return { productIds: [], message: 'Here are our products 👇' }
+  if (type === 'catalog') return { productIds: [], message: 'Here are our products.' }
   if (type === 'set') return { field: '', value: '{{message}}' }
   if (type === 'schedule') return { seconds: 86400, message: '' }
   if (type === 'booking') {
     return { service: 'appointment', daysAhead: 5, startHour: 9, endHour: 18, intervalMins: 30, reminderHours: 24, message: '', confirmMessage: '' }
   }
   if (type === 'payment') {
-    return { message: 'Complete your payment below 👇', label: 'Pay now', linkTemplate: '', amount: '', currency: '₹' }
+    return { message: 'Complete your payment below.', label: 'Pay now', linkTemplate: '', amount: '', currency: 'INR' }
   }
   return {}
 }
@@ -158,19 +161,31 @@ export default function WorkflowPage() {
   const [savedAt, setSavedAt] = useState(null)
   const [sessions, setSessions] = useState([])
   const [boundSessionIds, setBoundSessionIds] = useState([])
+  const [error, setError] = useState('')
+  const [publishing, setPublishing] = useState(false)
+
+  const loadFlow = useCallback(async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const f = await flowService.get(id)
+      setFlow(f)
+      setNodes(f.nodes || [])
+      setEdges(normalizeEdges(f.edges || []))
+      setBoundSessionIds(f.boundSessionIds || [])
+    } catch (requestError) {
+      setFlow(null)
+      setError(requestError.message || 'Could not load this workflow.')
+    } finally {
+      setLoading(false)
+    }
+  }, [id])
 
   useEffect(() => {
-    flowService
-      .get(id)
-      .then((f) => {
-        setFlow(f)
-        setNodes(f.nodes || [])
-        setEdges(normalizeEdges(f.edges || []))
-        setBoundSessionIds(f.boundSessionIds || [])
-      })
-      .finally(() => setLoading(false))
+    // This is an external-server fetch. `loadFlow` owns the asynchronous state transitions.
+    loadFlow()
     waService.list().then(setSessions).catch(() => {})
-  }, [id])
+  }, [loadFlow])
 
   const onNodesChange = useCallback(
     (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
@@ -215,19 +230,36 @@ export default function WorkflowPage() {
   }
 
   const save = async () => {
+    if (!flow) return false
     setSaving(true)
+    setError('')
     try {
       await flowService.save(id, { name: flow.name, nodes, edges: normalizeEdges(edges) })
       setSavedAt(Date.now())
+      return true
+    } catch (requestError) {
+      setError(requestError.message || 'Could not save this workflow.')
+      return false
     } finally {
       setSaving(false)
     }
   }
 
   const togglePublish = async () => {
-    await flowService.save(id, { name: flow.name, nodes, edges: normalizeEdges(edges) })
-    const updated = await flowService.publish(id, flow.status !== 'published', boundSessionIds)
-    setFlow(updated)
+    if (!flow) return
+    setPublishing(true)
+    setError('')
+    try {
+      const saved = await save()
+      if (!saved) return
+      const updated = await flowService.publish(id, flow.status !== 'published', boundSessionIds)
+      setFlow(updated)
+      setSavedAt(Date.now())
+    } catch (requestError) {
+      setError(requestError.message || 'Could not change the workflow status.')
+    } finally {
+      setPublishing(false)
+    }
   }
 
   const toggleBoundSession = (sid) => {
@@ -238,14 +270,30 @@ export default function WorkflowPage() {
 
   if (loading) {
     return (
-      <div className="grid min-h-screen place-items-center">
+      <div className="grid h-full min-h-[24rem] place-items-center">
         <Spinner className="h-8 w-8 text-brand-600" />
       </div>
     )
   }
 
+  if (!flow) {
+    return (
+      <div className="grid h-full min-h-[24rem] place-items-center">
+        <div className="max-w-md rounded-2xl border border-line bg-white p-7 text-center">
+          <AlertCircle className="mx-auto h-8 w-8 text-red-600" />
+          <h2 className="mt-3 text-lg font-bold text-ink">Workflow unavailable</h2>
+          <p className="mt-2 text-sm text-muted">{error || 'This workflow could not be opened.'}</p>
+          <div className="mt-5 flex justify-center gap-2">
+            <Button variant="secondary" leftIcon={<ArrowLeft className="h-4 w-4" />} onClick={() => navigate('/dashboard/workflows')}>Back to workflows</Button>
+            <Button leftIcon={<RefreshCw className="h-4 w-4" />} onClick={loadFlow}>Try again</Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="flex h-screen flex-col bg-canvas">
+    <div className="flex h-full min-h-0 flex-col bg-canvas">
       {/* Consistent top header */}
       <header className="flex h-16 shrink-0 items-center justify-between border-b border-line bg-white px-4">
         <div className="flex items-center gap-3">
@@ -253,7 +301,7 @@ export default function WorkflowPage() {
             variant="ghost"
             size="sm"
             leftIcon={<ArrowLeft className="h-4 w-4" />}
-            onClick={() => navigate('/dashboard?tab=workflows')}
+            onClick={() => navigate('/dashboard/workflows')}
           >
             Back
           </Button>
@@ -274,13 +322,13 @@ export default function WorkflowPage() {
             bound={boundSessionIds}
             onToggle={toggleBoundSession}
           />
-          {savedAt && (
+          {savedAt && !error && (
             <span className="text-xs text-muted">Saved</span>
           )}
           <Button
             variant="secondary"
             size="sm"
-            loading={saving}
+            loading={saving && !publishing}
             leftIcon={<Save className="h-4 w-4" />}
             onClick={save}
           >
@@ -289,12 +337,15 @@ export default function WorkflowPage() {
           <Button
             size="sm"
             leftIcon={<Check className="h-4 w-4" />}
+            loading={publishing}
             onClick={togglePublish}
           >
             {flow.status === 'published' ? 'Unpublish' : 'Publish'}
           </Button>
         </div>
       </header>
+
+      {error && <div role="alert" className="flex shrink-0 items-center gap-2 border-b border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700"><AlertCircle className="h-4 w-4" />{error}</div>}
 
       <div className="flex flex-1 overflow-hidden">
         {/* Palette */}

@@ -9,6 +9,7 @@ import { ScribeWidget } from '../Clinic'
 export default function DashboardLayout() {
   const { pathname } = useLocation()
   const isPatientDetail = pathname.startsWith('/dashboard/patients/') && pathname !== '/dashboard/patients/new'
+  const isWorkflowEditor = /^\/dashboard\/workflows\/[^/]+$/.test(pathname)
   const isScribeWorkspace = pathname.endsWith('/scribe')
   const [collapsed, setCollapsed] = useState(
     () => localStorage.getItem('wa_sidebar_collapsed') === '1',
@@ -34,10 +35,10 @@ export default function DashboardLayout() {
       <Sidebar collapsed={collapsed} onToggle={toggle} />
       <div className="flex min-w-0 flex-1 flex-col">
         <Header actions={actions} />
-        <main className={`flex-1 ${isPatientDetail ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+        <main className={`flex-1 ${isPatientDetail || isWorkflowEditor ? 'overflow-hidden' : 'overflow-y-auto'}`}>
           <div
             className={
-              isPatientDetail
+              isPatientDetail || isWorkflowEditor
                 ? 'h-full px-3 py-3'
                 : 'mx-auto max-w-full px-6 py-7 sm:px-8'
             }

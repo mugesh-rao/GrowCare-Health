@@ -17,11 +17,11 @@ export default function ConnectWhatsAppModal({ open, onClose, onConnected }) {
   const [status, setStatus] = useState('idle')
   const [error, setError] = useState('')
 
-  // Refs so the close handler sees the latest values.
+  // Refs so the close handler sees the latest values without mutating them during render.
   const sessionRef = useRef(null)
   const statusRef = useRef('idle')
-  sessionRef.current = sessionId
-  statusRef.current = status
+  useEffect(() => { sessionRef.current = sessionId }, [sessionId])
+  useEffect(() => { statusRef.current = status }, [status])
 
   // Listen for qr/status events for this session.
   useRealtime((evt) => {
@@ -62,22 +62,26 @@ export default function ConnectWhatsAppModal({ open, onClose, onConnected }) {
       .then((s) => {
         if (cancelled) return
         setSessionId(s.sessionId)
-        // Poll once shortly in case the WS event was missed.
-        setTimeout(async () => {
+        // Poll while pairing: QR delivery must not depend on a single WebSocket event.
+        const poll = async () => {
           try {
             const d = await waService.get(s.sessionId)
-            if (!cancelled && d.qr) {
-              setQr(d.qr)
-              setStatus(d.status)
-            }
+            if (cancelled) return
+            if (d.qr) setQr(d.qr)
+            setStatus(d.status)
+            if (d.status !== 'connected' && d.status !== 'logged_out') timer = setTimeout(poll, 1000)
           } catch {
-            /* ignore */
+            if (!cancelled) timer = setTimeout(poll, 1500)
           }
-        }, 1500)
+        }
+        let timer = setTimeout(poll, 500)
+        cleanupPoll = () => clearTimeout(timer)
       })
       .catch((e) => !cancelled && setError(e.message))
+    let cleanupPoll = () => {}
     return () => {
       cancelled = true
+      cleanupPoll()
     }
   }, [open])
 

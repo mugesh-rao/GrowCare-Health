@@ -32,6 +32,45 @@ const statusTone = {
   disconnected: 'neutral',
 }
 
+function ActivityChart({ activity = [] }) {
+  const series = activity.length === 7
+    ? activity
+    : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((label) => ({ label, received: 0, sent: 0 }))
+  const values = series.map((day) => (day.received || 0) + (day.sent || 0))
+  const maximum = Math.max(...values, 1)
+  const points = values.map((value, index) => {
+    const x = 8 + index * 16
+    const y = 78 - (value / maximum) * 56
+    return `${x},${y}`
+  }).join(' ')
+
+  return (
+    <div className="mt-5">
+      <div className="mb-3 flex items-center justify-between text-xs text-muted">
+        <span>Messages this week</span>
+        <span>{values.reduce((total, value) => total + value, 0).toLocaleString()} total</span>
+      </div>
+      <svg viewBox="0 0 112 92" className="h-48 w-full" role="img" aria-label="Weekly message activity chart">
+        {[22, 50, 78].map((y) => <line key={y} x1="8" x2="104" y1={y} y2={y} stroke="#e7e5df" strokeWidth="0.7" />)}
+        <defs>
+          <linearGradient id="activity-area" x1="0" x2="0" y1="0" y2="1">
+            <stop stopColor="#14736f" stopOpacity="0.24" />
+            <stop offset="1" stopColor="#14736f" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <path d={`M 8,78 L ${points.replaceAll(' ', ' L ')} L 104,78 Z`} fill="url(#activity-area)" />
+        <polyline points={points} fill="none" stroke="#14736f" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" />
+        {values.map((value, index) => {
+          const x = 8 + index * 16
+          const y = 78 - (value / maximum) * 56
+          return <circle key={series[index]?.date || series[index]?.label || index} cx={x} cy={y} r="2.3" fill="#fdfcf9" stroke="#14736f" strokeWidth="1.6" />
+        })}
+        {series.map((day, index) => <text key={day.date || day.label} x={8 + index * 16} y="89" textAnchor="middle" fill="#78807d" fontSize="5.5">{day.label || new Date(day.date).toLocaleDateString(undefined, { weekday: 'short' }).slice(0, 3)}</text>)}
+      </svg>
+    </div>
+  )
+}
+
 export default function Overview() {
   const navigate = useNavigate()
   const [stats, setStats] = useState(null)
@@ -103,6 +142,47 @@ export default function Overview() {
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <Card.Header className="flex items-center justify-between">
+            <div>
+              <p className="font-semibold text-ink">Patient communication activity</p>
+              <p className="mt-0.5 text-sm text-muted">A quick view of this week&apos;s clinic messages.</p>
+            </div>
+            <span className="rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">Last 7 days</span>
+          </Card.Header>
+          <Card.Body className="pt-0">
+            <ActivityChart activity={stats.activity || []} />
+            <div className="grid gap-3 border-t border-line pt-4 sm:grid-cols-2">
+              <div><p className="text-xs font-medium uppercase tracking-wide text-muted">Incoming</p><p className="mt-1 text-2xl font-bold text-ink">{(stats.received ?? 0).toLocaleString()}</p></div>
+              <div><p className="text-xs font-medium uppercase tracking-wide text-muted">Replies sent</p><p className="mt-1 text-2xl font-bold text-ink">{(stats.sent ?? 0).toLocaleString()}</p></div>
+            </div>
+          </Card.Body>
+        </Card>
+
+        <Card>
+          <Card.Header>
+            <span className="font-semibold text-ink">Getting started</span>
+          </Card.Header>
+          <Card.Body className="space-y-3">
+            {checklist.map((item) => (
+              <button
+                key={item.label}
+                onClick={() => navigate(item.to)}
+                className="flex w-full items-center gap-2.5 text-left text-sm"
+              >
+                {item.done ? (
+                  <CheckCircle2 className="h-5 w-5 shrink-0 text-brand-600" />
+                ) : (
+                  <Circle className="h-5 w-5 shrink-0 text-slate-300" />
+                )}
+                <span className={item.done ? 'text-muted line-through' : 'text-ink'}>
+                  {item.label}
+                </span>
+              </button>
+            ))}
+          </Card.Body>
+        </Card>
+
+        <Card className="lg:col-span-2">
+          <Card.Header className="flex items-center justify-between">
             <span className="flex items-center gap-2 font-semibold text-ink">
               <Smartphone className="h-4.5 w-4.5 text-brand-600" /> WhatsApp connections
             </span>
@@ -146,29 +226,6 @@ export default function Overview() {
           </Card.Body>
         </Card>
 
-        <Card>
-          <Card.Header>
-            <span className="font-semibold text-ink">Getting started</span>
-          </Card.Header>
-          <Card.Body className="space-y-3">
-            {checklist.map((item) => (
-              <button
-                key={item.label}
-                onClick={() => navigate(item.to)}
-                className="flex w-full items-center gap-2.5 text-left text-sm"
-              >
-                {item.done ? (
-                  <CheckCircle2 className="h-5 w-5 shrink-0 text-brand-600" />
-                ) : (
-                  <Circle className="h-5 w-5 shrink-0 text-slate-300" />
-                )}
-                <span className={item.done ? 'text-muted line-through' : 'text-ink'}>
-                  {item.label}
-                </span>
-              </button>
-            ))}
-          </Card.Body>
-        </Card>
       </div>
     </div>
   )

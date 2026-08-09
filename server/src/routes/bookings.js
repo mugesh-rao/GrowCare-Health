@@ -19,6 +19,7 @@ router.post('/', async (req, res) => {
   const id = store.genId()
   const appointment = {
     name: String(body.name).trim(), phone: String(body.phone || '').trim(), service: String(body.service || 'Consultation').trim(),
+    durationMinutes: Math.max(5, Number(body.durationMinutes) || 30), notes: String(body.notes || '').trim(),
     slotIso, slotLabel: new Date(slotIso).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
     status: 'booked', source: 'manual', createdAt: Date.now(),
   }

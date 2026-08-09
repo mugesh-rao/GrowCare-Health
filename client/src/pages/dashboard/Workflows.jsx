@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { Plus, Pencil, Trash2, Workflow as WorkflowIcon, LayoutTemplate } from 'lucide-react'
 import { Button, Badge, Table, Card, Spinner } from '../../components/atoms'
 import WorkflowTemplateGallery from '../../components/organisms/WorkflowTemplateGallery'
-import useHeaderActions from '../../hooks/useHeaderActions'
 import flowService from '../../services/flowService'
 
 const fmtDate = (ts) =>
@@ -17,56 +16,75 @@ export default function Workflows() {
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(null)
   const [showTemplates, setShowTemplates] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    flowService
-      .list()
+    flowService.list()
       .then(setFlows)
+      .catch((requestError) => setError(requestError.message || 'Could not load workflows.'))
       .finally(() => setLoading(false))
   }, [])
 
   const create = async () => {
-    const flow = await flowService.create('Untitled workflow')
-    navigate(`/workflow/${flow.id}`)
+    setBusy('create')
+    setError('')
+    try {
+      const flow = await flowService.create('Untitled workflow')
+      navigate(`/dashboard/workflows/${flow.id}`)
+    } catch (requestError) {
+      setError(requestError.message || 'Could not create the workflow.')
+    } finally {
+      setBusy(null)
+    }
   }
 
   const createFromTemplate = async (template) => {
-    const flow = await flowService.createFromTemplate(template)
-    navigate(`/workflow/${flow.id}`)
+    setError('')
+    try {
+      const flow = await flowService.createFromTemplate(template)
+      navigate(`/dashboard/workflows/${flow.id}`)
+    } catch (requestError) {
+      setError(requestError.message || 'Could not create a workflow from that template.')
+    }
   }
-
-  useHeaderActions(
-    <>
-      <Button
-        variant="secondary"
-        leftIcon={<LayoutTemplate className="h-4 w-4" />}
-        onClick={() => setShowTemplates(true)}
-      >
-        Clinic templates
-      </Button>
-      <Button leftIcon={<Plus className="h-4 w-4" />} onClick={create}>
-        New workflow
-      </Button>
-    </>,
-  )
 
   const togglePublish = async (flow) => {
     setBusy(flow.id)
     try {
       const updated = await flowService.publish(flow.id, flow.status !== 'published')
       setFlows((prev) => prev.map((item) => (item.id === flow.id ? updated : item)))
+    } catch (requestError) {
+      setError(requestError.message || 'Could not change the workflow status.')
     } finally {
       setBusy(null)
     }
   }
 
   const remove = async (id) => {
-    await flowService.remove(id)
-    setFlows((prev) => prev.filter((flow) => flow.id !== id))
+    setError('')
+    try {
+      await flowService.remove(id)
+      setFlows((prev) => prev.filter((flow) => flow.id !== id))
+    } catch (requestError) {
+      setError(requestError.message || 'Could not delete the workflow.')
+    }
   }
 
   return (
     <>
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold text-ink">Care workflows</h2>
+          <p className="mt-1 text-sm text-muted">Build reusable journeys for patient communication and follow-up.</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="secondary" leftIcon={<LayoutTemplate className="h-4 w-4" />} onClick={() => setShowTemplates(true)}>
+            Clinic templates
+          </Button>
+          <Button leftIcon={<Plus className="h-4 w-4" />} loading={busy === 'create'} onClick={create}>New workflow</Button>
+        </div>
+      </div>
+      {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
       {loading ? (
         <div className="grid place-items-center py-20">
           <Spinner className="h-8 w-8 text-brand-600" />
@@ -114,7 +132,7 @@ export default function Workflows() {
                 <Table.Td>
                   <button
                     className="font-semibold text-ink hover:text-brand-700"
-                    onClick={() => navigate(`/workflow/${flow.id}`)}
+                    onClick={() => navigate(`/dashboard/workflows/${flow.id}`)}
                   >
                     {flow.name}
                   </button>
@@ -138,7 +156,7 @@ export default function Workflows() {
                     </Button>
                     <button
                       title="Edit"
-                      onClick={() => navigate(`/workflow/${flow.id}`)}
+                      onClick={() => navigate(`/dashboard/workflows/${flow.id}`)}
                       className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
                     >
                       <Pencil className="h-4 w-4" />

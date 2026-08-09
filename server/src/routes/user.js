@@ -50,9 +50,10 @@ router.get('/me', async (req, res) => {
 // PATCH /api/user/me — update profile fields (name, businessType, goal).
 router.patch('/me', async (req, res) => {
   const { uid } = req.user
-  const { name, businessType, goal } = req.body || {}
+  const { name, email, businessType, goal } = req.body || {}
   await store.setDoc(`users/${uid}`, {
     ...(name !== undefined && { name }),
+    ...(email !== undefined && { email: String(email).trim() }),
     ...(businessType !== undefined && { businessType }),
     ...(goal !== undefined && { goal }),
   })
@@ -63,13 +64,29 @@ router.patch('/me', async (req, res) => {
 router.get('/stats', async (req, res) => {
   const { uid } = req.user
   const base = `users/${uid}`
-  const [received, sent, contacts, sessions, flows] = await Promise.all([
-    store.countDocs(`${base}/messages`, [['direction', '==', 'in']]),
-    store.countDocs(`${base}/messages`, [['direction', '==', 'out']]),
+  const [messages, contacts, sessions, flows] = await Promise.all([
+    store.listDocs(`${base}/messages`),
     store.countDocs(`${base}/contacts`),
     store.listDocs(`${base}/sessions`),
     store.listDocs(`${base}/flows`),
   ])
+  const received = messages.filter((message) => message.direction === 'in').length
+  const sent = messages.filter((message) => message.direction === 'out').length
+  const localDateKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+  const dayStart = new Date()
+  dayStart.setHours(0, 0, 0, 0)
+  const activity = Array.from({ length: 7 }, (_, index) => {
+    const day = new Date(dayStart)
+    day.setDate(day.getDate() - (6 - index))
+    return { date: day.toISOString(), received: 0, sent: 0 }
+  })
+  const activityByDate = new Map(activity.map((item) => [localDateKey(new Date(item.date)), item]))
+  messages.forEach((message) => {
+    const timestamp = new Date(message.timestamp || message.createdAt || 0)
+    const day = Number.isNaN(timestamp.getTime()) ? null : localDateKey(timestamp)
+    const bucket = day && activityByDate.get(day)
+    if (bucket && (message.direction === 'in' || message.direction === 'out')) bucket[message.direction === 'in' ? 'received' : 'sent'] += 1
+  })
   res.json({
     stats: {
       received,
@@ -79,6 +96,7 @@ router.get('/stats', async (req, res) => {
       totalNumbers: sessions.length,
       publishedFlows: flows.filter((f) => f.status === 'published').length,
       totalFlows: flows.length,
+      activity,
     },
   })
 })

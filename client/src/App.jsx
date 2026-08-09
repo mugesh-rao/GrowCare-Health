@@ -30,6 +30,7 @@ export default function App() {
             <Route path="patients/:patientId" element={<PatientDetailPage />} />
             <Route path="bookings" element={<Bookings />} />
             <Route path="workflows" element={<Workflows />} />
+            <Route path="workflows/:id" element={<WorkflowPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="inbox" element={<Navigate to="/dashboard/whatsapp?tab=inbox" replace />} />
             <Route path="bulk" element={<Navigate to="/dashboard/whatsapp?tab=inbox" replace />} />
