@@ -25,7 +25,6 @@ import useHeaderActions from '../../hooks/useHeaderActions'
 import { clinicalApi } from '../../services/clinicalApi'
 
 const languages = [
-  { label: 'Auto-detect', value: 'auto' },
   { label: 'English (India)', value: 'en-IN' },
   { label: 'Hindi / Hinglish', value: 'hi-IN' },
   { label: 'Tamil', value: 'ta-IN' },
@@ -47,7 +46,10 @@ function buildPatientSummary(note, patient) {
 export default function PatientScribePage() {
   const navigate = useNavigate()
   const { patientId } = useParams()
-  const recognitionRef = useRef(null)
+  const mediaRecorderRef = useRef(null)
+  const mediaChunksRef = useRef([])
+  const mediaStreamRef = useRef(null)
+  const chunkPendingRef = useRef(false)
   const saveTimerRef = useRef(null)
   const recordingRef = useRef(false)
   const [patient, setPatient] = useState(null)
@@ -55,7 +57,9 @@ export default function PatientScribePage() {
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('transcript')
   const [sourcesOpen, setSourcesOpen] = useState(true)
-  const [language, setLanguage] = useState('auto')
+  const [language, setLanguage] = useState('en-IN')
+  const [contextNote, setContextNote] = useState('')
+  const [savingContext, setSavingContext] = useState(false)
   const [consent, setConsent] = useState(false)
   const [session, setSession] = useState(null)
   const [transcript, setTranscript] = useState('')
@@ -90,7 +94,8 @@ export default function PatientScribePage() {
   useEffect(() => () => {
     recordingRef.current = false
     clearTimeout(saveTimerRef.current)
-    recognitionRef.current?.stop?.()
+    mediaRecorderRef.current?.stop?.()
+    mediaStreamRef.current?.getTracks?.().forEach((track) => track.stop())
   }, [])
 
   const saveTranscript = (nextTranscript) => {
@@ -114,38 +119,54 @@ export default function PatientScribePage() {
     })
   }
 
-  const configureRecognition = () => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
-    if (!SpeechRecognition) {
-      setNotice('Live speech recognition is unavailable in this desktop WebView. You can type or paste the transcript below, then create the note normally.')
-      return null
+  const sendAudioChunk = (blob, sessionId) => new Promise((resolve) => {
+    if (chunkPendingRef.current || !blob.size) { resolve(); return }
+    chunkPendingRef.current = true
+    const reader = new FileReader()
+    reader.onload = async () => {
+      try {
+        const text = await clinicalApi.transcribeScribeChunk(patientId, sessionId, { audioData: reader.result, audioMimeType: blob.type || 'audio/webm' })
+        if (text) appendTranscript(text)
+      } catch (requestError) { setNotice(`OpenAI live transcription paused: ${requestError.message}`) } finally { chunkPendingRef.current = false; resolve() }
     }
-    const recognition = new SpeechRecognition()
-    recognition.continuous = true
-    recognition.interimResults = true
-    recognition.lang = language === 'auto' ? 'en-IN' : language
-    recognition.onresult = (event) => {
-      let finalText = ''
-      let nextInterim = ''
-      for (let index = event.resultIndex; index < event.results.length; index += 1) {
-        const result = event.results[index]
-        if (result.isFinal) finalText += result[0].transcript
-        else nextInterim += result[0].transcript
-      }
-      if (finalText) appendTranscript(finalText)
-      setInterim(nextInterim)
+    reader.onerror = () => { chunkPendingRef.current = false; resolve() }
+    reader.readAsDataURL(blob)
+  })
+
+  const startLocalAudioCapture = async (sessionId) => {
+    if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+      setNotice('OpenAI transcription will use the live transcript because local audio capture is unavailable in this WebView.')
+      return
     }
-    recognition.onerror = (event) => {
-      if (!['aborted', 'no-speech'].includes(event.error)) setNotice(`Microphone transcription: ${event.error}. You can continue by typing.`)
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const recorder = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : undefined })
+      mediaChunksRef.current = []
+      recorder.ondataavailable = (event) => { if (event.data.size) { mediaChunksRef.current.push(event.data); void sendAudioChunk(event.data, sessionId) } }
+      recorder.start(4000)
+      mediaRecorderRef.current = recorder
+      mediaStreamRef.current = stream
+    } catch {
+      setNotice('Microphone audio could not be captured. You can continue with the live transcript or type the note.')
     }
-    recognition.onend = () => {
-      if (recordingRef.current) {
-        try { recognition.start() } catch { /* The WebView may still be releasing the microphone. */ }
-      }
-    }
-    recognitionRef.current = recognition
-    return recognition
   }
+
+  const finishLocalAudioCapture = () => new Promise((resolve) => {
+    const recorder = mediaRecorderRef.current
+    const stream = mediaStreamRef.current
+    const cleanUp = () => stream?.getTracks?.().forEach((track) => track.stop())
+    if (!recorder || recorder.state === 'inactive') { cleanUp(); resolve(null); return }
+    recorder.onstop = () => {
+      const blob = new Blob(mediaChunksRef.current, { type: recorder.mimeType || 'audio/webm' })
+      cleanUp()
+      if (!blob.size) { resolve(null); return }
+      const reader = new FileReader()
+      reader.onload = () => resolve({ audioData: reader.result, audioMimeType: blob.type || 'audio/webm' })
+      reader.onerror = () => resolve(null)
+      reader.readAsDataURL(blob)
+    }
+    recorder.stop()
+  })
 
   const startConsultation = async () => {
     if (!patient) return
@@ -164,7 +185,7 @@ export default function PatientScribePage() {
       setStatus('recording')
       setActiveTab('transcript')
       recordingRef.current = true
-      configureRecognition()?.start()
+      void startLocalAudioCapture(nextSession.id)
     } catch (requestError) {
       setNotice(requestError.message)
     }
@@ -173,14 +194,14 @@ export default function PatientScribePage() {
   const togglePause = () => {
     if (status === 'recording') {
       recordingRef.current = false
-      recognitionRef.current?.stop?.()
+      if (mediaRecorderRef.current?.state === 'recording') mediaRecorderRef.current.pause()
       setStatus('paused')
       return
     }
     if (status === 'paused') {
       recordingRef.current = true
       setStatus('recording')
-      try { recognitionRef.current?.start?.() } catch { configureRecognition()?.start() }
+      if (mediaRecorderRef.current?.state === 'paused') mediaRecorderRef.current.resume()
     }
   }
 
@@ -188,10 +209,10 @@ export default function PatientScribePage() {
     if (!session) return
     clearTimeout(saveTimerRef.current)
     recordingRef.current = false
-    recognitionRef.current?.stop?.()
     setStatus('preparing')
     try {
-      const finished = await clinicalApi.stopScribe(patientId, session.id, transcript)
+      const audio = await finishLocalAudioCapture()
+      const finished = await clinicalApi.stopScribe(patientId, session.id, transcript, audio || {})
       setSession(finished)
       setDraft(finished.draft)
       setActiveTab('note')
@@ -214,6 +235,11 @@ export default function PatientScribePage() {
       setNotice(requestError.message)
       setStatus('review')
     }
+  }
+
+  const saveContext = async () => {
+    setSavingContext(true)
+    try { await clinicalApi.saveContextNote(patientId, contextNote); setNotice('Clinical context saved locally. Refresh patient context from Intelligence to include it in the AI brief.') } catch (requestError) { setNotice(requestError.message) } finally { setSavingContext(false) }
   }
 
   if (loading) return <Card className="h-full"><Card.Body className="flex h-full items-center justify-center text-sm text-muted">Loading patient consultation workspace</Card.Body></Card>
@@ -253,7 +279,11 @@ export default function PatientScribePage() {
       <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
         {activeTab === 'context' && (
           <div className="mx-auto grid max-w-4xl gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-            <div className="rounded-2xl border border-line bg-canvas p-5">
+            <div className="rounded-2xl border border-line bg-white p-6">
+              <p className="text-xs font-bold uppercase tracking-wide text-muted">Clinical context</p>
+              <textarea value={contextNote} onChange={(event) => setContextNote(event.target.value)} rows={8} className="mt-4 w-full resize-none border-0 bg-transparent p-0 text-sm leading-7 text-ink outline-none placeholder:text-muted" placeholder="Paste referral notes, previous history, symptoms, medications, or anything the scribe should know. This is saved locally and used when you refresh the AI clinical context." />
+              <div className="mt-3 flex justify-end"><Button variant="secondary" loading={savingContext} onClick={saveContext}>Save context locally</Button></div>
+              <div className="my-5 border-t border-line" />
               <div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-brand-100 text-brand-700"><Stethoscope className="h-5 w-5" /></span><div><p className="font-semibold text-ink">{patient.name}</p><p className="text-xs text-muted">{patient.mrn} · {patient.specialty} · {patient.doctor}</p></div></div>
               <p className="mt-5 text-sm leading-6 text-muted">{patient.summary}</p>
               <dl className="mt-5 grid gap-3 sm:grid-cols-3"><div><dt className="text-[10px] font-bold uppercase tracking-wide text-muted">Status</dt><dd className="mt-1 text-sm font-semibold text-ink">{patient.status}</dd></div><div><dt className="text-[10px] font-bold uppercase tracking-wide text-muted">Last visit</dt><dd className="mt-1 text-sm font-semibold text-ink">{patient.lastVisit}</dd></div><div><dt className="text-[10px] font-bold uppercase tracking-wide text-muted">Risk</dt><dd className="mt-1 text-sm font-semibold text-ink">{patient.risk}</dd></div></dl>

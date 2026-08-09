@@ -1,6 +1,5 @@
 const express = require('express')
 const store = require('../services/core/store')
-const ai = require('../services/ai/service')
 const clinicalIntelligence = require('../services/clinical/intelligence')
 const clinicalFiles = require('../services/clinical/files')
 
@@ -198,6 +197,14 @@ router.patch('/patients/:patientId', async (req, res) => {
   res.json({ patient: await getPatientBundle(req.user.uid, req.params.patientId) })
 })
 
+router.post('/patients/:patientId/context-notes', async (req, res) => {
+  const uid = req.user.uid
+  if (!(await store.getDoc(patientPath(uid, req.params.patientId)))) return res.status(404).json({ message: 'Patient not found.' })
+  const contextNote = { body: String(req.body?.body || '').slice(0, 100000), updatedAt: now(), updatedBy: req.user.name }
+  await store.setDoc(childPath(uid, req.params.patientId, 'contextNotes', 'current'), contextNote, false)
+  res.json({ contextNote: { id: 'current', ...contextNote } })
+})
+
 router.post('/patients/:patientId/artifacts', async (req, res) => {
   const uid = req.user.uid
   if (!(await store.getDoc(patientPath(uid, req.params.patientId)))) return res.status(404).json({ message: 'Patient not found.' })
@@ -278,12 +285,14 @@ router.post('/patients/:patientId/context/refresh', async (req, res) => {
   const patient = await store.getDoc(patientPath(uid, req.params.patientId))
   if (!patient) return res.status(404).json({ message: 'Patient not found.' })
   try {
-    const [extractions, observations, encounters] = await Promise.all([
+    const [extractions, observations, encounters, contextNote, scribeSessions] = await Promise.all([
       store.listDocs(`${patientPath(uid, patient.id)}/clinicalExtractions`),
       store.listDocs(`${patientPath(uid, patient.id)}/observations`),
       store.listDocs(`${patientPath(uid, patient.id)}/encounters`),
+      store.getDoc(childPath(uid, patient.id, 'contextNotes', 'current')),
+      store.listDocs(`${patientPath(uid, patient.id)}/scribeSessions`),
     ])
-    const result = await clinicalIntelligence.buildContext({ uid, patient: { id: patient.id, ...patient }, extractions, observations, encounters })
+    const result = await clinicalIntelligence.buildContext({ uid, patient: { id: patient.id, ...patient }, extractions, observations, encounters: [...encounters, ...scribeSessions.map((item) => ({ note: { transcript: item.transcript, draft: item.draft } }))], contextNote: contextNote?.body || '' })
     const context = { ...result.data, generatedAt: now(), generatedWith: result.generatedWith, sourceExtractionIds: extractions.map((item) => item.id), clinicianReviewStatus: 'pending' }
     await store.setDoc(childPath(uid, patient.id, 'clinicalContext', 'current'), context, false)
     res.json({ context: { id: 'current', ...context } })
@@ -312,20 +321,49 @@ router.patch('/patients/:patientId/scribe/:sessionId', async (req, res) => {
   res.json({ session: await store.getDoc(path) })
 })
 
+router.post('/patients/:patientId/scribe/:sessionId/transcribe', async (req, res) => {
+  const uid = req.user.uid
+  const session = await store.getDoc(childPath(uid, req.params.patientId, 'scribeSessions', req.params.sessionId))
+  if (!session || session.status !== 'recording') return res.status(400).json({ message: 'An active scribe session is required for live transcription.' })
+  if (!session.consentConfirmed) return res.status(400).json({ message: 'Patient consent is required for live transcription.' })
+  try {
+    const text = await clinicalIntelligence.transcribeAudioChunk({ uid, audioData: req.body?.audioData, mimeType: req.body?.audioMimeType })
+    res.json({ text })
+  } catch (error) {
+    res.status(422).json({ message: error.message || 'OpenAI could not transcribe this audio segment.' })
+  }
+})
+
 router.post('/patients/:patientId/scribe/:sessionId/stop', async (req, res) => {
   const uid = req.user.uid
   const path = childPath(uid, req.params.patientId, 'scribeSessions', req.params.sessionId)
   const session = await store.getDoc(path)
   const patient = await store.getDoc(patientPath(uid, req.params.patientId))
   if (!session || !patient) return res.status(404).json({ message: 'Scribe session or patient not found.' })
-  const transcript = String(req.body?.transcript ?? session.transcript ?? '').slice(0, 200000)
+  let transcript = String(req.body?.transcript ?? session.transcript ?? '').slice(0, 200000)
+  let audioArtifact = null
+  if (req.body?.audioData) {
+    try {
+      const id = store.genId()
+      const fileName = `consultation-${new Date().toISOString().replace(/[:.]/g, '-')}.webm`
+      const localFile = await clinicalFiles.storeBase64({ patientId: patient.id, fileName, fileData: req.body.audioData })
+      if (localFile) {
+        audioArtifact = { fileName, kind: 'Ambient consultation audio', mimeType: req.body?.audioMimeType || 'audio/webm', ...localFile, createdAt: now(), extractionStatus: 'transcribed' }
+        await store.setDoc(childPath(uid, patient.id, 'artifacts', id), audioArtifact, false)
+        const aiTranscript = await clinicalIntelligence.transcribeScribeAudio({ uid, patient: { id: patient.id, ...patient }, artifact: { id, ...audioArtifact } })
+        if (aiTranscript) transcript = aiTranscript
+      }
+    } catch (error) {
+      console.error('[clinical scribe audio]', error.message)
+    }
+  }
   const localDraft = makeDraftNote(transcript, patient)
-  const aiDraft = await ai.generateScribeDraft({ uid, transcript, patient })
+  const aiDraft = await clinicalIntelligence.generateScribeDraft({ uid, transcript, patient })
   const draft = aiDraft
     ? { ...localDraft, ...aiDraft, generatedAt: now(), generatedWith: 'Configured local OpenAI key' }
     : localDraft
   await store.setDoc(path, { status: 'review', transcript, draft, stoppedAt: now(), updatedAt: now() })
-  res.json({ session: await store.getDoc(path) })
+  res.json({ session: await store.getDoc(path), audioArtifact })
 })
 
 router.post('/patients/:patientId/scribe/:sessionId/approve', async (req, res) => {

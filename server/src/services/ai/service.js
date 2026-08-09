@@ -12,7 +12,7 @@ async function resolveCredentials({ uid, provider = 'openai', apiKey, model, pre
     // A temporary key supplied by the settings "Test" action must take precedence
     // without changing the key the rest of the application uses.
     apiKey: (preferProvidedKey && apiKey) || settings.apiKey || apiKey || process.env.OPENAI_API_KEY || '',
-    model: settings.model || model || '',
+    model: settings.model || model || (provider === 'openai' ? 'gpt-5.6-luna' : ''),
   }
 }
 

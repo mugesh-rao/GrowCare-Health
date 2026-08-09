@@ -19,6 +19,7 @@ import { reportCardsByPatient } from '../../lib/clinicReportCards'
 import ClinicalIntelligencePanel from './ClinicalIntelligencePanel'
 
 const tabs = [
+  { id: 'brief',       label: 'Pre-visit brief', Icon: Sparkles },
   { id: 'chat',        label: 'Chat',       Icon: MessageSquareMore },
   { id: 'visits',      label: 'Visit-wise', Icon: CalendarClock },
   { id: 'progression', label: 'Progression',Icon: TrendingUp },
@@ -268,10 +269,6 @@ export default function PatientChatWorkspace({ patient, onUpdated }) {
 
   return (
     <div className="flex h-full min-w-0 flex-1 flex-col gap-3 overflow-hidden">
-      {!briefDismissed && patient.briefingCard && (
-        <DoctorBriefingCard patient={patient} onDismiss={() => setBriefDismissed(true)} />
-      )}
-
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[22px] border border-line bg-white">
         {/* Tab bar */}
         <div className="flex shrink-0 items-center gap-1 border-b border-line px-4 py-3">
@@ -292,6 +289,8 @@ export default function PatientChatWorkspace({ patient, onUpdated }) {
           ))}
         </div>
 
+        {activeTab === 'brief'       && !briefDismissed && <div className="min-h-0 flex-1 overflow-y-auto p-5"><DoctorBriefingCard patient={patient} onDismiss={() => setBriefDismissed(true)} /></div>}
+        {activeTab === 'brief'       && briefDismissed && <div className="grid min-h-0 flex-1 place-items-center p-8 text-center text-sm text-muted">The pre-visit brief is hidden for this session.</div>}
         {activeTab === 'chat'        && <ChatView patient={patient} />}
         {activeTab === 'visits'      && <VisitWiseView patient={patient} />}
         {activeTab === 'progression' && <ProgressionCanvas patient={patient} />}

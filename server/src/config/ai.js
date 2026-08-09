@@ -32,7 +32,7 @@ const oai = {
 const PROVIDERS = {
   openai: {
     id: 'openai', name: 'OpenAI', baseUrl: 'https://api.openai.com/v1',
-    models: ['gpt-4o-mini', 'gpt-4o', 'gpt-5.6-luna'], ...oai,
+    models: ['gpt-5.6-luna', 'gpt-4o', 'gpt-4o-mini'], ...oai,
   },
   openrouter: {
     id: 'openrouter', name: 'OpenRouter', baseUrl: 'https://openrouter.ai/api/v1',
