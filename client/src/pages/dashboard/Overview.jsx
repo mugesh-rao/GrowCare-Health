@@ -5,7 +5,6 @@ import {
   Send,
   Users,
   Smartphone,
-  Workflow,
   Plus,
   ArrowRight,
   CheckCircle2,
@@ -14,10 +13,8 @@ import {
 import { Card, Spinner, Button, Badge } from '../../components/atoms'
 import useRealtime from '../../hooks/useRealtime'
 import useHeaderActions from '../../hooks/useHeaderActions'
-import { useProfile } from '../../context/ProfileContext'
 import userService from '../../services/userService'
 import waService from '../../services/waService'
-import flowService from '../../services/flowService'
 
 const statCards = [
   { key: 'received', label: 'Patient messages', Icon: Inbox, tint: 'bg-brand-50 text-brand-700' },
@@ -37,21 +34,18 @@ const statusTone = {
 
 export default function Overview() {
   const navigate = useNavigate()
-  const { user } = useProfile()
   const [stats, setStats] = useState(null)
   const [sessions, setSessions] = useState([])
-  const [flows, setFlows] = useState([])
 
   useHeaderActions(
-    <Button leftIcon={<Plus className="h-4 w-4" />} onClick={() => navigate('/dashboard?tab=workflows')}>
-      New workflow
+    <Button leftIcon={<Plus className="h-4 w-4" />} onClick={() => navigate('/dashboard/patients/new')}>
+      Create patient
     </Button>,
   )
 
   useEffect(() => {
     userService.stats().then(setStats).catch(() => setStats({}))
     waService.list().then(setSessions).catch(() => {})
-    flowService.list().then(setFlows).catch(() => {})
   }, [])
 
   useRealtime((evt) => {
@@ -72,23 +66,11 @@ export default function Overview() {
   })
 
   const connectedCount = sessions.filter((session) => session.status === 'connected').length
-  const publishedCount = flows.filter((flow) => flow.status === 'published').length
-
   const checklist = [
     {
       done: connectedCount > 0,
       label: 'Connect your clinic WhatsApp number',
-      to: '/dashboard/whatsapp?tab=settings',
-    },
-    {
-      done: flows.length > 0,
-      label: 'Create your first care workflow',
-      to: '/dashboard?tab=workflows',
-    },
-    {
-      done: publishedCount > 0,
-      label: 'Publish a workflow to go live',
-      to: '/dashboard?tab=workflows',
+      to: '/dashboard/settings',
     },
   ]
 
@@ -102,15 +84,6 @@ export default function Overview() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="font-display text-xl font-extrabold text-ink">
-          Welcome back, {user?.name?.split(' ')[0] || 'there'}
-        </h2>
-        <p className="text-sm text-muted">
-          Here&apos;s the current snapshot of your clinic communication desk.
-        </p>
-      </div>
-
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {statCards.map(({ key, label, Icon, tint }) => (
           <Card key={key}>
@@ -137,7 +110,7 @@ export default function Overview() {
               variant="ghost"
               size="sm"
               rightIcon={<ArrowRight className="h-4 w-4" />}
-              onClick={() => navigate('/dashboard/whatsapp?tab=settings')}
+              onClick={() => navigate('/dashboard/settings')}
             >
               Manage
             </Button>
@@ -148,7 +121,7 @@ export default function Overview() {
                 No numbers connected yet.{' '}
                 <button
                   className="font-semibold text-brand-600"
-                  onClick={() => navigate('/dashboard/whatsapp?tab=settings')}
+                  onClick={() => navigate('/dashboard/settings')}
                 >
                   Connect WhatsApp
                 </button>
@@ -197,29 +170,6 @@ export default function Overview() {
           </Card.Body>
         </Card>
       </div>
-
-      <Card>
-        <Card.Header className="flex items-center justify-between">
-          <span className="flex items-center gap-2 font-semibold text-ink">
-            <Workflow className="h-4.5 w-4.5 text-brand-600" /> Workflows
-          </span>
-          <div className="flex items-center gap-2">
-            <Badge tone="brand">{publishedCount} live</Badge>
-            <Button
-              variant="ghost"
-              size="sm"
-              rightIcon={<ArrowRight className="h-4 w-4" />}
-              onClick={() => navigate('/dashboard?tab=workflows')}
-            >
-              Open
-            </Button>
-          </div>
-        </Card.Header>
-        <Card.Body className="text-sm text-muted">
-          {flows.length} total workflow{flows.length === 1 ? '' : 's'} and {publishedCount} live
-          care automation{publishedCount === 1 ? '' : 's'}.
-        </Card.Body>
-      </Card>
     </div>
   )
 }

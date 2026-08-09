@@ -1,9 +1,19 @@
 import { useEffect, useState } from 'react'
 import {
   ArrowLeft, CheckCheck, ChevronDown, ChevronUp, ClipboardList,
-  Mic, Send, Sparkles, Square, TriangleAlert, X,
+  Dna, Eye, FlaskConical, HeartPulse, Mic, ScanLine, Send, Sparkles, Square, Stethoscope, TriangleAlert, X,
 } from 'lucide-react'
 import { Badge } from '../atoms'
+
+const SPECIALTY_ICON = {
+  Endocrinology: FlaskConical,
+  Ophthalmology: Eye,
+  Oncology: Dna,
+  Cardiology: HeartPulse,
+  Neurology: Sparkles,
+  Dermatology: ScanLine,
+  'General Medicine': Stethoscope,
+}
 
 /* ── Helpers ──────────────────────────────────────────────────────────────── */
 
@@ -25,12 +35,12 @@ function buildMockNote(patient) {
 function buildWaSummary(patient, note, lang) {
   const rx = note.prescriptions.slice(0, 3)
   if (lang === 'Hindi') {
-    return `नमस्ते ${patient.name.split(' ')[0]}! यहाँ आपकी आज की विज़िट की समरी है:\n\n🩺 डायग्नोसिस: ${note.diagnosis}\n\n💊 दवाइयाँ:\n${rx.map((r) => `• ${r.drug} — ${r.dose}`).join('\n')}\n\n⚠️ ध्यान दें: यदि कोई नए लक्षण हों तो तुरंत क्लिनिक से संपर्क करें।\n\n📅 अगली विज़िट: 4 हफ्ते बाद।\n\nकोई सवाल हो तो यहाँ reply करें।`
+    return `नमस्ते ${patient.name.split(' ')[0]}! यहाँ आपकी आज की विज़िट की समरी है:\n\nनिदान: ${note.diagnosis}\n\nदवाइयाँ:\n${rx.map((r) => `- ${r.drug} — ${r.dose}`).join('\n')}\n\nध्यान दें: यदि कोई नए लक्षण हों तो तुरंत क्लिनिक से संपर्क करें।\n\nअगली विज़िट: 4 हफ्ते बाद।\n\nकोई सवाल हो तो यहाँ reply करें।`
   }
   if (lang === 'Tamil') {
-    return `வணக்கம் ${patient.name.split(' ')[0]}! இன்றைய உங்கள் விஜிட் சுருக்கம்:\n\n🩺 நோய் கண்டறிதல்: ${note.diagnosis}\n\n💊 மருந்துகள்:\n${rx.map((r) => `• ${r.drug} — ${r.dose}`).join('\n')}\n\n⚠️ கவனம்: புதிய அறிகுறிகள் தென்பட்டால் உடனே தொடர்பு கொள்ளுங்கள்.\n\n📅 அடுத்த விஜிட்: 4 வாரங்கள் பிறகு.\n\nஏதாவது கேள்வி இருந்தால் இங்கே பதில் அனுப்புங்கள்.`
+    return `வணக்கம் ${patient.name.split(' ')[0]}! இன்றைய உங்கள் விஜிட் சுருக்கம்:\n\nநோய் கண்டறிதல்: ${note.diagnosis}\n\nமருந்துகள்:\n${rx.map((r) => `- ${r.drug} — ${r.dose}`).join('\n')}\n\nகவனம்: புதிய அறிகுறிகள் தென்பட்டால் உடனே தொடர்பு கொள்ளுங்கள்.\n\nஅடுத்த விஜிட்: 4 வாரங்கள் பிறகு.\n\nஏதாவது கேள்வி இருந்தால் இங்கே பதில் அனுப்புங்கள்.`
   }
-  return `Hi ${patient.name.split(' ')[0]} — here's your visit summary from ${patient.doctor} today:\n\n🩺 Diagnosis: ${note.diagnosis}\n\n💊 Medicines:\n${rx.map((r) => `• ${r.drug} — ${r.dose}${r.duration !== 'Ongoing' ? ` for ${r.duration}` : ''}`).join('\n')}\n\n⚠️ Watch for: any new or worsening symptoms since today's visit.\n\n${note.followUp}\n\nReply here if you have any questions.`
+  return `Hi ${patient.name.split(' ')[0]} — here's your visit summary from ${patient.doctor} today:\n\nDiagnosis: ${note.diagnosis}\n\nMedicines:\n${rx.map((r) => `- ${r.drug} — ${r.dose}${r.duration !== 'Ongoing' ? ` for ${r.duration}` : ''}`).join('\n')}\n\nWatch for any new or worsening symptoms since today's visit.\n\n${note.followUp}\n\nReply here if you have any questions.`
 }
 
 /* ── Sub-views ────────────────────────────────────────────────────────────── */
@@ -184,7 +194,9 @@ function ReviewingView({ note, onPreview, setNote }) {
                     (rx.warning ? ' bg-amber-50' : ' bg-white')
                   }
                 >
-                  <span className="mt-0.5 shrink-0 text-base">{rx.warning ? '⚠️' : '✅'}</span>
+                  {rx.warning
+                    ? <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-label="Prescription warning" />
+                    : <CheckCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-label="Prescription verified" />}
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold text-ink">{rx.drug}</p>
                     <p className="text-xs text-muted">
@@ -307,14 +319,15 @@ function SentView({ patient, onClose }) {
 
 function VisitContextSidebar({ patient }) {
   const [rxOpen, setRxOpen] = useState(true)
+  const SpecialtyIcon = SPECIALTY_ICON[patient.specialty] || Stethoscope
 
   return (
     <div className="flex h-full w-[300px] shrink-0 flex-col overflow-hidden rounded-[22px] border border-line bg-white">
       {/* Patient card */}
       <div className="shrink-0 border-b border-line px-5 py-5">
         <div className="flex items-center gap-3">
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-night-900 text-xl text-white">
-            {patient.specialty === 'Cardiology' ? '🫀' : patient.specialty === 'Oncology' ? '🧬' : patient.specialty === 'Ophthalmology' ? '👁️' : patient.specialty === 'Neurology' ? '🧠' : patient.specialty === 'Dermatology' ? '🫧' : '🩺'}
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-night-900 text-white">
+            <SpecialtyIcon className="h-5 w-5" aria-hidden="true" />
           </span>
           <div>
             <h3 className="font-display text-base font-bold text-ink">{patient.name}</h3>
@@ -355,7 +368,9 @@ function VisitContextSidebar({ patient }) {
                 }
               >
                 <div className="flex items-start gap-2">
-                  <span className="mt-0.5 text-sm">{rx.warning ? '⚠️' : '✅'}</span>
+                  {rx.warning
+                    ? <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-label="Prescription warning" />
+                    : <CheckCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-label="Prescription verified" />}
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-ink">{rx.drug}</p>
                     <p className="mt-0.5 text-xs text-muted">

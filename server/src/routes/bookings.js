@@ -10,6 +10,22 @@ router.get('/', async (req, res) => {
   res.json({ bookings: list })
 })
 
+// POST /api/bookings — clinician-created appointments, independent of workflows.
+router.post('/', async (req, res) => {
+  const body = req.body || {}
+  const slotIso = String(body.slotIso || '')
+  if (!slotIso || Number.isNaN(new Date(slotIso).getTime())) return res.status(400).json({ message: 'Choose a valid appointment date and time.' })
+  if (!String(body.name || '').trim()) return res.status(400).json({ message: 'Patient name is required.' })
+  const id = store.genId()
+  const appointment = {
+    name: String(body.name).trim(), phone: String(body.phone || '').trim(), service: String(body.service || 'Consultation').trim(),
+    slotIso, slotLabel: new Date(slotIso).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
+    status: 'booked', source: 'manual', createdAt: Date.now(),
+  }
+  await store.setDoc(`users/${req.user.uid}/bookings/${id}`, appointment, false)
+  res.status(201).json({ booking: { id, ...appointment } })
+})
+
 // PATCH /api/bookings/:id  { status }
 router.patch('/:id', async (req, res) => {
   const path = `users/${req.user.uid}/bookings/${req.params.id}`

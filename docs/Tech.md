@@ -710,4 +710,84 @@ Final decision
 
 Ship this.
 
-Best balance between reliability, ecosystem compatibility, maintainability and development speed.
+Best balance between reliability, ecosystem compatibility, maintainability and development speed.Yes. **A hotspot can absolutely be used for this.** You do not need internet access. You only need the computers to be connected to the same local network created by the hotspot.
+
+For example:
+
+```text
+              Wi-Fi Hotspot
+           Internet NOT required
+                  │
+        ┌─────────┼─────────┐
+        │         │         │
+     Doctor PC  Nurse PC  Reception PC
+     Tauri App   Tauri App   Tauri App
+        │         │         │
+        └─────────┼─────────┘
+                  │
+            Local Server PC
+```
+
+Suppose one laptop creates a hotspot called `Clinic-Network`. Doctor, nurse/medical staff, reception, and other computers connect to that hotspot. The hotspot assigns each machine a local IP, typically something like:
+
+```text
+Server PC       192.168.137.1
+Doctor PC       192.168.137.10
+Nurse PC        192.168.137.11
+Reception PC    192.168.137.12
+```
+
+Then your Tauri apps communicate over those local IPs. For example, the doctor clicks **"Call Nurse"**, the request goes through the hotspot to your local server, and the nurse's desktop can instantly display:
+
+```text
+🔔 Doctor Room 2 is requesting assistance
+
+[Accept] [Busy]
+```
+
+The response can immediately appear on the doctor's machine:
+
+```text
+✓ Nurse accepted
+```
+
+You can do considerably more than simple messaging: patient queue updates, doctor calling a nurse/peon, reception notifying that a patient arrived, lab results becoming available, prescriptions reaching pharmacy, internal chat, file/PDF transfer, notifications, and status changes can all work through the hotspot.
+
+### One important distinction
+
+I would **not make the hotspot itself your application architecture**. Treat the hotspot simply as the network cable.
+
+Your architecture should remain:
+
+```text
+Tauri PC ─┐
+Tauri PC ─┼── Hotspot/LAN ── Local Server
+Tauri PC ─┘                   │
+                              ├── API
+                              ├── WebSocket
+                              └── Database
+```
+
+That means tomorrow you can replace the hotspot with a normal Wi-Fi router or Ethernet network and **your application doesn't need to change**.
+
+For a tiny clinic with 2 to 5 computers, even a laptop-created hotspot can work for a prototype. For an actual hospital deployment with many machines, I would use a dedicated Wi-Fi router/access point rather than depending on a phone hotspot or someone's laptop hotspot. It will be much more stable.
+
+You could also make setup almost **zero-configuration**:
+
+```text
+1. Turn on Clinic hotspot
+2. PCs connect to Clinic hotspot
+3. Open Tauri application
+4. App automatically discovers local server
+5. Login
+6. PCs start communicating
+```
+
+No internet. No cloud dependency. No manually typing IP addresses.
+
+For your POC, I'd build **Hotspot/LAN + mDNS discovery + WebSocket + one local server**. That gives you the hotspot version now while keeping the exact same architecture ready for a proper hospital LAN later.
+
+**Next useful decisions:**
+**A)** I can show exactly how Tauri PC A discovers and talks to Tauri PC B over a Windows hotspot.
+**B)** I can design it with **no central server**, direct PC-to-PC communication.
+**C)** I can design the recommended **central local server architecture** with automatic discovery and offline operation.

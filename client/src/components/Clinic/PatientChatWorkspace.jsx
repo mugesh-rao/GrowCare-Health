@@ -3,6 +3,7 @@ import { clinicalApi } from '../../services/clinicalApi'
 import {
   ArrowUp,
   CalendarClock,
+  CheckCheck,
   FlaskConical,
   MessageSquareMore,
   Pill,
@@ -32,8 +33,8 @@ const STATUS_STYLE = {
   high:     { pill: 'bg-red-100 text-red-700',         dot: 'text-red-500',     label: 'HIGH' },
   elevated: { pill: 'bg-amber-100 text-amber-700',     dot: 'text-amber-500',   label: 'WATCH' },
   low:      { pill: 'bg-amber-100 text-amber-700',     dot: 'text-amber-500',   label: 'LOW' },
-  normal:   { pill: 'bg-emerald-100 text-emerald-700', dot: 'text-emerald-600', label: '✓' },
-  neutral:  { pill: 'bg-slate-100 text-slate-600',     dot: 'text-slate-400',   label: '—' },
+  normal:   { pill: 'bg-emerald-100 text-emerald-700', dot: 'text-emerald-600', label: 'NORMAL' },
+  neutral:  { pill: 'bg-slate-100 text-slate-600',     dot: 'text-slate-400',   label: 'N/A' },
 }
 function statusStyle(s) { return STATUS_STYLE[s] || STATUS_STYLE.neutral }
 
@@ -168,15 +169,11 @@ function LabCard({ card }) {
 }
 
 function ImagingCard({ card }) {
-  const iconMap = { oct: '👁️', echo: '🫀', ecg: '📈', mri: '🧠', xray: '🩻', skin: '🫧' }
-  const icon = iconMap[card.imageType] || '📷'
-
   return (
     <div className="overflow-hidden rounded-2xl border border-line bg-white">
       <div className="flex items-center gap-2 border-b border-line bg-canvas px-4 py-2.5">
         <ScanLine className="h-3.5 w-3.5 text-brand-600" />
         <p className="text-xs font-semibold text-ink">{card.title}</p>
-        <span className="ml-auto text-base leading-none">{icon}</span>
       </div>
       <div className="flex">
         {/* Visual scan area */}
@@ -226,7 +223,9 @@ function PrescriptionCard({ card }) {
       <div className="divide-y divide-line">
         {card.drugs.map((d, i) => (
           <div key={i} className={`flex items-start gap-2 px-4 py-2 ${d.warning ? 'bg-amber-50' : ''}`}>
-            <span className="mt-0.5 shrink-0 text-[11px]">{d.warning ? '⚠️' : '✅'}</span>
+            {d.warning
+              ? <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" aria-label="Warning" />
+              : <CheckCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" aria-label="Verified" />}
             <div className="min-w-0">
               <p className="text-xs font-semibold text-ink">{d.drug}</p>
               <p className="text-[10px] text-muted">{d.dose}</p>

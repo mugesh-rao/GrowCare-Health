@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Check, ChevronDown, Mic, Minus, Square, X } from 'lucide-react'
 import { clinicalApi } from '../../services/clinicalApi'
+import AuroraMicVisual from './AuroraMicVisual'
 
 const languages = [
   { label: 'Auto / mixed', value: 'auto' },
@@ -167,8 +168,10 @@ export default function ScribeWidget() {
   return (
     <div className="fixed bottom-5 right-5 z-50 w-[min(25rem,calc(100vw-2.5rem))]">
       {!open ? (
-        <button type="button" onClick={() => setOpen(true)} className="ml-auto flex items-center gap-2 rounded-full bg-night-900 px-5 py-3 text-sm font-bold text-white shadow-xl transition hover:bg-brand-700">
-          <Mic className="h-4 w-4" /> ScribeAI
+        <button type="button" onClick={() => setOpen(true)} title="Open local transcription widget" className="group relative ml-auto grid h-16 w-16 cursor-pointer place-items-center overflow-hidden rounded-full border border-brand-200 bg-brand-50 text-brand-800 transition hover:scale-105 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-500/20">
+          <AuroraMicVisual className="absolute inset-0 opacity-75" />
+          <span className="relative grid h-9 w-9 place-items-center rounded-full bg-white/80 backdrop-blur-sm"><Mic className="h-4 w-4" /></span>
+          <span className="sr-only">Open local transcription widget</span>
         </button>
       ) : (
         <section className="overflow-hidden rounded-3xl border border-line bg-white shadow-2xl">

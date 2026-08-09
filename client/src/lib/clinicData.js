@@ -40,7 +40,7 @@ export const clinicPatients = [
       { label: 'Jun', value: 8.4 },
     ],
     primaryMetricName: 'HbA1c (%)',
-    progressionSignal: '🔴 HbA1c has risen from 7.1% to 8.4% over 6 months — upward trajectory suggests current treatment is insufficient. Creatinine also trending up. Medical review and possible dose change recommended.',
+    progressionSignal: 'High priority: HbA1c has risen from 7.1% to 8.4% over 6 months — upward trajectory suggests current treatment is insufficient. Creatinine also trending up. Medical review and possible dose change recommended.',
     reportIssues: [
       { title: 'Renal trend deterioration', detail: 'Creatinine has moved up across the last three reports and needs contextual review.' },
       { title: 'Missing allergy confirmation', detail: 'Procedure planning note references contrast, but no contrast allergy is documented.' },
@@ -59,9 +59,9 @@ export const clinicPatients = [
       { checkInDay: 'Day 14', question: 'Have you completed your lab tests? Please upload the report.', patientResponse: 'No response', flagged: false, date: 'Jun 16, 2026' },
     ],
     prescriptions: [
-      { drug: 'Metformin 500mg', route: 'Oral', dose: '1-0-1', duration: 'Ongoing', since: 'Mar 2023', warning: '⚠️ Creatinine 1.4 mg/dL is near safety threshold — consider dose reduction or switch.' },
+      { drug: 'Metformin 500mg', route: 'Oral', dose: '1-0-1', duration: 'Ongoing', since: 'Mar 2023', warning: 'Creatinine 1.4 mg/dL is near safety threshold — consider dose reduction or switch.' },
       { drug: 'Amlodipine 5mg', route: 'Oral', dose: '0-0-1', duration: 'Ongoing', since: 'Jan 2024', warning: null },
-      { drug: 'Telmisartan 40mg', route: 'Oral', dose: '1-0-0', duration: 'Ongoing', since: 'Apr 2026', warning: '⚠️ ARB class + elevated Creatinine — monitor renal function. Get nephrologist input before increasing dose.' },
+      { drug: 'Telmisartan 40mg', route: 'Oral', dose: '1-0-0', duration: 'Ongoing', since: 'Apr 2026', warning: 'ARB class + elevated Creatinine — monitor renal function. Get nephrologist input before increasing dose.' },
     ],
     visits: [
       { date: 'Jun 02, 2026', title: 'Follow-up review', detail: 'Medication escalated to improve glycemic control. Nephrology referral discussed.', badge: 'Completed' },
@@ -124,7 +124,7 @@ export const clinicPatients = [
       { label: 'Jun', value: 78 },
     ],
     primaryMetricName: 'RNFL Thickness (µm)',
-    progressionSignal: '🟡 RNFL thickness declining gradually (84 → 78 µm over 6 months). Pattern consistent with slow progression. Compare against normative database and consider pressure management review.',
+    progressionSignal: 'Review needed: RNFL thickness declining gradually (84 → 78 µm over 6 months). Pattern consistent with slow progression. Compare against normative database and consider pressure management review.',
     reportIssues: [
       { title: 'Comparative review gap', detail: 'The current OCT upload is present, but the summary does not compare it against the prior visit.' },
     ],
@@ -198,7 +198,7 @@ export const clinicPatients = [
       { label: 'Jun', value: 42 },
     ],
     primaryMetricName: 'Tumor Marker (U/mL)',
-    progressionSignal: '🔴 Tumor marker rising sharply — 18 to 42 U/mL in 6 months, with accelerating trajectory. This trend warrants urgent clinical review and possible protocol reassessment before the next visit.',
+    progressionSignal: 'High priority: tumor marker rising sharply — 18 to 42 U/mL in 6 months, with accelerating trajectory. This trend warrants urgent clinical review and possible protocol reassessment before the next visit.',
     reportIssues: [
       { title: 'Marker trend escalation', detail: 'Tumor marker trajectory is rising steeply and should be highlighted during next review.' },
       { title: 'Normalization pending', detail: 'Outside imaging summary remains attached as PDF only and is not structured yet.' },
@@ -216,7 +216,7 @@ export const clinicPatients = [
       { checkInDay: 'Day 7', question: 'Have you been eating well? Any weight changes?', patientResponse: 'Eating less than usual, some nausea in the morning', flagged: true, date: 'Jun 17, 2026' },
     ],
     prescriptions: [
-      { drug: 'Capecitabine 500mg', route: 'Oral', dose: '2-0-2', duration: 'Cycle 6', since: 'Jan 2026', warning: '⚠️ Hand-foot syndrome possible — ask patient to check palms and soles for redness or peeling.' },
+      { drug: 'Capecitabine 500mg', route: 'Oral', dose: '2-0-2', duration: 'Cycle 6', since: 'Jan 2026', warning: 'Hand-foot syndrome possible — ask patient to check palms and soles for redness or peeling.' },
       { drug: 'Ondansetron 4mg', route: 'Oral', dose: 'As needed', duration: 'During treatment', since: 'Jan 2026', warning: null },
       { drug: 'Omeprazole 20mg', route: 'Oral', dose: '1-0-0', duration: 'Ongoing', since: 'Feb 2026', warning: null },
     ],
@@ -275,7 +275,7 @@ export const clinicPatients = [
       { label: 'Jun', value: 126 },
     ],
     primaryMetricName: 'LDL Cholesterol (mg/dL)',
-    progressionSignal: '🟢 LDL cholesterol showing consistent downward trend — 138 to 126 mg/dL over 6 months. Statin therapy appears effective. Continue current plan and review at next visit.',
+    progressionSignal: 'Improving: LDL cholesterol showing a consistent downward trend — 138 to 126 mg/dL over 6 months. Statin therapy appears effective. Continue current plan and review at next visit.',
     reportIssues: [
       { title: 'Family history missing', detail: 'Risk intake is otherwise complete, but hereditary context has not been attached yet.' },
     ],
@@ -347,7 +347,7 @@ export const clinicPatients = [
       { label: 'Jun', value: 4 },
     ],
     primaryMetricName: 'Migraine Episodes / Month',
-    progressionSignal: '🟢 Migraine frequency halved since starting Topiramate (9 → 4 per month). Preventive therapy is working. Main concern is a breakthrough episode reported on Day 5 that is not yet documented in the chart.',
+    progressionSignal: 'Improving: migraine frequency halved since starting Topiramate (9 → 4 per month). Preventive therapy is working. Main concern is a breakthrough episode reported on Day 5 that is not yet documented in the chart.',
     reportIssues: [
       { title: 'Breakthrough episode undocumented', detail: 'Patient replied YES to Day 5 check-in. Episode severity, duration, and triggers not recorded.' },
     ],
@@ -365,7 +365,7 @@ export const clinicPatients = [
     ],
     prescriptions: [
       { drug: 'Topiramate 75mg', route: 'Oral', dose: '0-0-1', duration: 'Ongoing', since: 'Apr 2026', warning: null },
-      { drug: 'Sumatriptan 50mg', route: 'Oral', dose: 'Max 2/week (rescue)', duration: 'As needed', since: 'Mar 2026', warning: '⚠️ Monitor usage frequency — >8 days/month raises medication overuse headache risk.' },
+      { drug: 'Sumatriptan 50mg', route: 'Oral', dose: 'Max 2/week (rescue)', duration: 'As needed', since: 'Mar 2026', warning: 'Monitor usage frequency — >8 days/month raises medication overuse headache risk.' },
     ],
     visits: [
       { date: 'Jun 03, 2026', title: 'Neurology review', detail: 'Topiramate dose increased to 75mg. Vestibular rehabilitation exercises prescribed.', badge: 'Completed' },
@@ -425,7 +425,7 @@ export const clinicPatients = [
       { label: 'Jun', value: 38 },
     ],
     primaryMetricName: 'Ejection Fraction (%)',
-    progressionSignal: '🟡 Ejection fraction stable at 38% across 3 consecutive readings — no improvement but no worsening. Sodium trending downward — likely diuretic-related. Review Furosemide dose urgently.',
+    progressionSignal: 'Review needed: ejection fraction stable at 38% across 3 consecutive readings — no improvement but no worsening. Sodium trending downward — likely diuretic-related. Review Furosemide dose urgently.',
     reportIssues: [
       { title: 'Drug interaction risk', detail: 'Spironolactone + Lisinopril combination requires potassium monitoring at every visit. Currently unchecked.' },
       { title: 'Sodium below threshold', detail: 'Sodium at 133 — likely diuretic-related. Review Furosemide dose against sodium trend before continuing.' },
@@ -444,9 +444,9 @@ export const clinicPatients = [
     ],
     prescriptions: [
       { drug: 'Carvedilol 12.5mg', route: 'Oral', dose: '1-0-1', duration: 'Ongoing', since: 'Jan 2025', warning: null },
-      { drug: 'Lisinopril 5mg', route: 'Oral', dose: '1-0-0', duration: 'Ongoing', since: 'Jan 2025', warning: '⚠️ Lisinopril + Spironolactone — hyperkalemia risk. Monitor potassium every 6 weeks.' },
-      { drug: 'Furosemide 40mg', route: 'Oral', dose: '1-0-0', duration: 'Ongoing', since: 'Jan 2025', warning: '⚠️ Sodium at 133 — review dose. Furosemide may be contributing to hyponatremia and recent weight changes.' },
-      { drug: 'Spironolactone 25mg', route: 'Oral', dose: '0-1-0', duration: 'Ongoing', since: 'Feb 2025', warning: '⚠️ Dual RAAS blockade with Lisinopril — monitor creatinine and potassium at each visit.' },
+      { drug: 'Lisinopril 5mg', route: 'Oral', dose: '1-0-0', duration: 'Ongoing', since: 'Jan 2025', warning: 'Lisinopril + Spironolactone — hyperkalemia risk. Monitor potassium every 6 weeks.' },
+      { drug: 'Furosemide 40mg', route: 'Oral', dose: '1-0-0', duration: 'Ongoing', since: 'Jan 2025', warning: 'Sodium at 133 — review dose. Furosemide may be contributing to hyponatremia and recent weight changes.' },
+      { drug: 'Spironolactone 25mg', route: 'Oral', dose: '0-1-0', duration: 'Ongoing', since: 'Feb 2025', warning: 'Dual RAAS blockade with Lisinopril — monitor creatinine and potassium at each visit.' },
       { drug: 'Aspirin 75mg', route: 'Oral', dose: '1-0-0', duration: 'Ongoing', since: 'Jan 2025', warning: null },
       { drug: 'Atorvastatin 40mg', route: 'Oral', dose: '0-0-1', duration: 'Ongoing', since: 'Jan 2025', warning: null },
     ],
@@ -501,7 +501,7 @@ export const clinicPatients = [
     ],
     trendSeries: [{ label: 'Week 1', value: 0 }],
     primaryMetricName: 'SCORAD Score',
-    progressionSignal: '⚪ Insufficient data — only 1 visit recorded. Complete baseline SCORAD and IgE allergy panel at next visit to establish tracking baselines.',
+    progressionSignal: 'Baseline needed: only 1 visit recorded. Complete baseline SCORAD and IgE allergy panel at next visit to establish tracking baselines.',
     reportIssues: [
       { title: 'Baseline scores missing', detail: 'SCORAD and DLQI need to be recorded at intake to track treatment response over time.' },
     ],
@@ -572,7 +572,7 @@ export const clinicPatients = [
       { label: 'Jun', value: 7.1 },
     ],
     primaryMetricName: 'HbA1c (%)',
-    progressionSignal: '🟡 HbA1c improving since Metformin was started (7.8% → 7.1% over 6 months). TSH normalised. Continue current plan and add a structured lifestyle programme to accelerate glycemic improvement.',
+    progressionSignal: 'Review needed: HbA1c is improving since Metformin was started (7.8% → 7.1% over 6 months). TSH normalised. Continue current plan and add a structured lifestyle programme to accelerate glycemic improvement.',
     reportIssues: [
       { title: 'Lifestyle plan missing', detail: 'HbA1c is borderline — a structured diet and exercise plan would significantly improve outcomes but has not been documented.' },
     ],

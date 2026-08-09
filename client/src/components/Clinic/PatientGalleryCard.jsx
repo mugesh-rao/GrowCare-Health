@@ -30,7 +30,7 @@ export default function PatientGalleryCard({ patient, onOpen }) {
     <button
       type="button"
       onClick={onOpen}
-      className="group flex w-full flex-col rounded-2xl border border-line bg-white p-6 text-left transition-all duration-200 hover:border-brand-300 hover:shadow-lg hover:shadow-brand-100/40"
+      className="group flex w-full cursor-pointer flex-col rounded-2xl border border-line bg-white p-6 text-left transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50/30 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-500/15"
     >
       {/* Top row: avatar + name */}
       <div className="flex items-start gap-4">

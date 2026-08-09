@@ -37,9 +37,7 @@ export default function PatientDetailPage() {
     return () => window.removeEventListener('growcare:patient-updated', updateFromScribe)
   }, [patientId, refreshPatient])
 
-  const startScribe = () => {
-    if (patient) window.dispatchEvent(new CustomEvent('growcare:open-scribe', { detail: { patient } }))
-  }
+  const startScribe = () => navigate(`/dashboard/patients/${patientId}/scribe`)
   useHeaderActions(
     <div className="flex items-center gap-2">
       <Button

@@ -9,6 +9,10 @@ const bookingService = {
     const { data } = await api.patch(`/bookings/${id}`, patch)
     return data.booking
   },
+  async create(payload) {
+    const { data } = await api.post('/bookings', payload)
+    return data.booking
+  },
   async remove(id) {
     await api.delete(`/bookings/${id}`)
   },

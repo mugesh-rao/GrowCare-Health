@@ -1,7 +1,7 @@
 import { invoke } from '@tauri-apps/api/core'
 
 const developmentConfig = {
-  baseUrl: 'http://127.0.0.1:5000/api',
+  baseUrl: 'http://127.0.0.1:5000',
   wsUrl: 'ws://127.0.0.1:5000',
 }
 

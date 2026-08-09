@@ -18,6 +18,11 @@ struct LocalServerConfig {
     ws_url: String,
 }
 
+#[derive(Serialize)]
+struct WindowActionState {
+    maximized: bool,
+}
+
 struct AppState {
     server: Mutex<Option<Child>>,
     config: LocalServerConfig,
@@ -88,10 +93,37 @@ fn local_server_config(state: State<'_, AppState>) -> LocalServerConfig {
     state.config.clone()
 }
 
+/// Window actions are executed by Tauri itself after the frontend emits an
+/// application event. This keeps the controls reliable in a frameless build.
+#[tauri::command]
+fn window_action(app: tauri::AppHandle, action: String) -> Result<WindowActionState, String> {
+    let window = app
+        .get_webview_window("main")
+        .ok_or_else(|| "GrowCare main window is unavailable.".to_string())?;
+
+    match action.as_str() {
+        "minimize" => window.minimize(),
+        "toggle-maximize" => {
+            if window.is_maximized().map_err(|error| error.to_string())? {
+                window.unmaximize()
+            } else {
+                window.maximize()
+            }
+        }
+        "close" => window.close(),
+        _ => return Err("Unsupported window action.".to_string()),
+    }
+    .map_err(|error| error.to_string())?;
+
+    Ok(WindowActionState {
+        maximized: window.is_maximized().unwrap_or(false),
+    })
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let config = LocalServerConfig {
-        base_url: format!("http://127.0.0.1:{SERVER_PORT}/api"),
+        base_url: format!("http://127.0.0.1:{SERVER_PORT}"),
         ws_url: format!("ws://127.0.0.1:{SERVER_PORT}"),
     };
 
@@ -110,7 +142,7 @@ pub fn run() {
             }
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![local_server_config])
+        .invoke_handler(tauri::generate_handler![local_server_config, window_action])
         .build(tauri::generate_context!())
         .expect("error while building GrowCare")
         .run(|app, event| {

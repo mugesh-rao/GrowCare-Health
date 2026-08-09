@@ -1,8 +1,6 @@
-import { FileText, Inbox, Send, Settings } from 'lucide-react'
+import { FileText, Inbox } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
-import BulkMessaging from './BulkMessaging'
 import InboxPage from './Inbox'
-import SettingsPage from './Settings'
 import Templates from './Templates'
 
 const tabs = [
@@ -13,22 +11,10 @@ const tabs = [
     blurb: 'Handle patient conversations, notes, statuses, and handoffs.',
   },
   {
-    id: 'broadcasts',
-    label: 'Broadcasts',
-    Icon: Send,
-    blurb: 'Send reminders, visit instructions, and follow-up campaigns at scale.',
-  },
-  {
     id: 'templates',
     label: 'Templates',
     Icon: FileText,
     blurb: 'Save reusable patient communication templates for the team and workflows.',
-  },
-  {
-    id: 'settings',
-    label: 'Settings',
-    Icon: Settings,
-    blurb: 'Manage clinic profile details, WhatsApp numbers, and connection safety.',
   },
 ]
 
@@ -39,9 +25,7 @@ export default function WhatsAppHub() {
   const activeTab = validTabs.has(searchParams.get('tab')) ? searchParams.get('tab') : 'inbox'
 
   const renderTab = () => {
-    if (activeTab === 'broadcasts') return <BulkMessaging />
     if (activeTab === 'templates') return <Templates />
-    if (activeTab === 'settings') return <SettingsPage />
     return <InboxPage />
   }
 

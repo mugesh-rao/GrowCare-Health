@@ -6,32 +6,32 @@
    ============================================================ */
 @theme {
   /* Brand — green */
-  --color-brand-50: #f0fdf4;
-  --color-brand-100: #dcfce7;
-  --color-brand-200: #bbf7d0;
-  --color-brand-300: #86efac;
-  --color-brand-400: #4ade80;
-  --color-brand-500: #22c55e;
-  --color-brand-600: #16a34a;
-  --color-brand-700: #15803d;
-  --color-brand-800: #166534;
-  --color-brand-900: #14532d;
+  --color-brand-50: #edf8f6;
+  --color-brand-100: #d7f0ec;
+  --color-brand-200: #b7e3dc;
+  --color-brand-300: #89d0c6;
+  --color-brand-400: #55b6ab;
+  --color-brand-500: #278b84;
+  --color-brand-600: #176c68;
+  --color-brand-700: #155955;
+  --color-brand-800: #164846;
+  --color-brand-900: #173b3a;
 
   /* Black / night surfaces (sidebar, dark accents) */
-  --color-night-700: #11201a;
-  --color-night-800: #0d1813;
-  --color-night-900: #08110d;
+  --color-night-700: #343134;
+  --color-night-800: #28262a;
+  --color-night-900: #1e1c20;
 
   /* Surface / neutrals */
-  --color-ink: #0b1410;
-  --color-muted: #64746c;
-  --color-line: #e6ebe8;
-  --color-surface: #ffffff;
-  --color-canvas: #f6f8f7;
+  --color-ink: #1c1a1e;
+  --color-muted: #79746e;
+  --color-line: #e6e1d9;
+  --color-surface: #fffefb;
+  --color-canvas: #f7f6f2;
 
   /* Fonts */
-  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-display: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
+  --font-sans: "Inter", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Inter", "Segoe UI", system-ui, sans-serif;
 
   /* Radius */
   --radius-xl: 0.875rem;
@@ -62,6 +62,14 @@ body {
   font-family: var(--font-sans);
   color: var(--color-ink);
   background: var(--color-canvas);
+}
+
+/* Most existing screens use Tailwind's white utility. Keep those panels in
+   the same warm ivory family as the supplied desktop references. */
+@layer utilities {
+  .bg-white { background-color: var(--color-surface); }
+  .bg-slate-50 { background-color: #faf9f6; }
+  .bg-slate-100 { background-color: #f1eee8; }
 }
 
 ::-webkit-scrollbar {

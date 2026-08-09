@@ -1,23 +1,22 @@
-import { HeartPulse } from 'lucide-react'
 import { cn } from '../../lib/cn'
+import brandMark from '../../assets/brand/growcare-mark.png'
+import brandWordmark from '../../assets/brand/growcare-wordmark.png'
 
-/** Logo atom - GrowCare brand mark + wordmark. */
+/** The generated GrowCare mark and wordmark used throughout the desktop shell. */
 export default function Logo({ className, showText = true, invert = false }) {
+  const source = showText ? brandWordmark : brandMark
+
   return (
-    <div className={cn('flex items-center gap-2.5', className)}>
-      <span className="grid h-9 w-9 place-items-center rounded-xl bg-brand-500 text-night-900">
-        <HeartPulse className="h-5 w-5" strokeWidth={2.25} />
-      </span>
-      {showText && (
-        <span
-          className={cn(
-            'font-display text-lg font-extrabold tracking-tight',
-            invert ? 'text-white' : 'text-ink',
-          )}
-        >
-          Grow<span className="text-brand-500">Care</span>
-        </span>
-      )}
+    <div className={cn('flex items-center', className)}>
+      <img
+        src={source}
+        alt="GrowCare"
+        className={cn(
+          'block w-auto object-contain',
+          showText ? 'h-8 max-w-[9.5rem]' : 'h-8 max-w-9',
+          invert && 'brightness-0 invert',
+        )}
+      />
     </div>
   )
 }

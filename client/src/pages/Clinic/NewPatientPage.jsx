@@ -1,19 +1,10 @@
 import { useState } from 'react'
-import { ChevronLeft, FileImage, FilePlus2, FileText, FlaskConical } from 'lucide-react'
+import { ChevronLeft, FileImage, FilePlus2, FileText, FlaskConical, Stethoscope } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Button, Input, Label } from '../../components/atoms'
 import useHeaderActions from '../../hooks/useHeaderActions'
+import { specialtyOptions } from '../../lib/clinicData'
 import { clinicalApi } from '../../services/clinicalApi'
-
-const SPECIALTIES = [
-  { value: 'Endocrinology', glyph: '🧪' },
-  { value: 'Ophthalmology', glyph: '👁️' },
-  { value: 'Oncology', glyph: '🧬' },
-  { value: 'Cardiology', glyph: '🫀' },
-  { value: 'Neurology', glyph: '🧠' },
-  { value: 'Orthopedics', glyph: '🦴' },
-  { value: 'General Medicine', glyph: '🩺' },
-]
 
 const RISK = [
   { value: 'Low',    active: 'border-emerald-500 bg-emerald-500 text-white', idle: 'border-line bg-white text-muted hover:border-emerald-400 hover:text-emerald-700' },
@@ -118,22 +109,11 @@ export default function NewPatientPage() {
 
           <div>
             <Label>Clinical department</Label>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {SPECIALTIES.map(s => (
-                <button
-                  key={s.value}
-                  type="button"
-                  onClick={() => set('specialty', s.value)}
-                  className={
-                    'flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-semibold transition ' +
-                    (form.specialty === s.value
-                      ? 'border-night-900 bg-night-900 text-white'
-                      : 'border-line bg-white text-ink hover:border-brand-300 hover:bg-brand-50')
-                  }
-                >
-                  <span>{s.glyph}</span>{s.value}
-                </button>
-              ))}
+            <div className="relative mt-2">
+              <Stethoscope className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
+              <select className="input-base w-full pl-9" value={form.specialty} onChange={e => set('specialty', e.target.value)}>
+                {specialtyOptions.filter((option) => option !== 'All specialties').map((option) => <option key={option}>{option}</option>)}
+              </select>
             </div>
           </div>
 
@@ -172,23 +152,9 @@ export default function NewPatientPage() {
           {/* Status */}
           <div>
             <Label>Status</Label>
-            <div className="mt-2 flex gap-2">
-              {STATUS.map(s => (
-                <button
-                  key={s.value}
-                  type="button"
-                  onClick={() => set('status', s.value)}
-                  className={
-                    'flex-1 rounded-xl border-2 py-2.5 text-sm font-bold transition ' +
-                    (form.status === s.value
-                      ? 'border-night-900 bg-night-900 text-white'
-                      : 'border-line bg-white text-muted hover:border-slate-400 hover:text-ink')
-                  }
-                >
-                  {s.value}
-                </button>
-              ))}
-            </div>
+            <select className="input-base mt-2 w-full" value={form.status} onChange={e => set('status', e.target.value)}>
+              {STATUS.map((option) => <option key={option.value}>{option.value}</option>)}
+            </select>
           </div>
 
           <div className="border-t border-line" />

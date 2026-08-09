@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CheckCheck, ChevronDown, ChevronUp, Pill, Sparkles, TriangleAlert, X } from 'lucide-react'
+import { CheckCheck, ChevronDown, ChevronUp, Pill, Sparkles, Target, TriangleAlert, X } from 'lucide-react'
 
 const FLAG = {
   red:   { accent: 'bg-red-400',     bg: 'bg-red-50',     badge: 'bg-red-100 text-red-700',         label: 'Needs attention' },
@@ -21,7 +21,7 @@ export default function DoctorBriefingCard({ patient, onDismiss }) {
   const f = FLAG[brief.flagLevel] || FLAG.green
 
   return (
-    <div className={`shrink-0 flex overflow-hidden rounded-2xl border border-line shadow-sm`}>
+    <div className="flex shrink-0 overflow-hidden rounded-2xl border border-line">
       {/* Coloured left accent strip */}
       <div className={`w-1 shrink-0 ${f.accent}`} />
 
@@ -29,7 +29,7 @@ export default function DoctorBriefingCard({ patient, onDismiss }) {
       <div className={`flex-1 min-w-0 ${f.bg}`}>
         {/* Header row */}
         <div className="flex items-center gap-2.5 px-4 pt-3.5 pb-2">
-          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-white shadow-sm">
+          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-white">
             <Sparkles className="h-3.5 w-3.5 text-brand-600" />
           </span>
           <div className="min-w-0 flex-1">
@@ -69,7 +69,7 @@ export default function DoctorBriefingCard({ patient, onDismiss }) {
                 Meds: {brief.medicationCompliance}
               </span>
               {brief.labStatus && (
-                <span className="flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-sm">
+                <span className="flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700">
                   <TriangleAlert className="h-3 w-3 text-amber-500" />
                   {brief.labStatus}
                 </span>
@@ -77,8 +77,8 @@ export default function DoctorBriefingCard({ patient, onDismiss }) {
             </div>
 
             {/* Suggested focus */}
-            <div className="mt-3 flex items-start gap-2.5 rounded-xl bg-white/80 px-3.5 py-2.5 shadow-sm">
-              <span className="mt-0.5 text-base leading-none">🎯</span>
+            <div className="mt-3 flex items-start gap-2.5 rounded-xl bg-white/80 px-3.5 py-2.5">
+              <Target className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" aria-hidden="true" />
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Suggested focus</p>
                 <p className="mt-0.5 text-[13px] font-medium leading-5 text-ink">{brief.recommendedFocus}</p>
@@ -88,7 +88,7 @@ export default function DoctorBriefingCard({ patient, onDismiss }) {
             {/* CTA */}
             <button
               onClick={onDismiss}
-              className="mt-3 flex items-center gap-1.5 rounded-xl bg-white/80 px-3.5 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-white hover:shadow"
+              className="mt-3 flex items-center gap-1.5 rounded-xl bg-white/80 px-3.5 py-2 text-sm font-semibold text-ink transition hover:bg-white"
             >
               <CheckCheck className="h-4 w-4 text-emerald-500" />
               Ready to consult

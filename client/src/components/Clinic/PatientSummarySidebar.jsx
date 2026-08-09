@@ -6,20 +6,25 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronUp,
+  Dna,
+  Eye,
+  FlaskConical,
   HeartPulse,
   MessageCircle,
+  ScanLine,
+  Stethoscope,
   TriangleAlert,
 } from 'lucide-react'
 import { Badge } from '../atoms'
 
-const specialtyGlyph = {
-  Endocrinology: '🧪',
-  Ophthalmology: '👁️',
-  Oncology: '🧬',
-  Cardiology: '🫀',
-  Neurology: '🧠',
-  Dermatology: '🫧',
-  'General Medicine': '🩺',
+const specialtyIcon = {
+  Endocrinology: FlaskConical,
+  Ophthalmology: Eye,
+  Oncology: Dna,
+  Cardiology: HeartPulse,
+  Neurology: Brain,
+  Dermatology: ScanLine,
+  'General Medicine': Stethoscope,
 }
 
 const metricTone = { success: 'success', warning: 'warning', danger: 'danger' }
@@ -52,6 +57,7 @@ function Section({ title, Icon, children, defaultOpen = true, badge }) {
 export default function PatientSummarySidebar({ patient, collapsed, onToggle }) {
   const flaggedAlerts = patient.betweenVisitAlerts?.filter((a) => a.flagged) ?? []
   const hasAlerts = flaggedAlerts.length > 0
+  const SpecialtyIcon = specialtyIcon[patient.specialty] || Stethoscope
 
   return (
     <div
@@ -65,8 +71,8 @@ export default function PatientSummarySidebar({ patient, collapsed, onToggle }) 
         <div className="shrink-0 border-b border-line px-5 py-5">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-3">
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-night-900 text-xl text-white">
-                {specialtyGlyph[patient.specialty] || '🩺'}
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-night-900 text-white">
+                <SpecialtyIcon className="h-5 w-5" aria-hidden="true" />
               </span>
               <div className="min-w-0">
                 <h2 className="font-display text-base font-bold leading-tight text-ink">
@@ -108,7 +114,7 @@ export default function PatientSummarySidebar({ patient, collapsed, onToggle }) 
       {/* Collapsed strip */}
       {collapsed && (
         <div className="flex flex-1 flex-col items-center gap-3 pt-5">
-          <span className="text-xl">{specialtyGlyph[patient.specialty] || '🩺'}</span>
+          <SpecialtyIcon className="h-5 w-5 text-brand-600" aria-hidden="true" />
           <span className="text-[10px] font-semibold text-muted">{patient.mrn}</span>
           {hasAlerts && (
             <span className="grid h-5 w-5 place-items-center rounded-full bg-amber-500 text-[10px] font-bold text-white">
@@ -183,17 +189,9 @@ export default function PatientSummarySidebar({ patient, collapsed, onToggle }) 
                         )}
                       </div>
                       <p className="mt-1 text-[12px] text-muted">{alert.question}</p>
-                      <p
-                        className={
-                          'mt-1.5 text-[12px] font-semibold ' +
-                          (alert.patientResponse === 'No response'
-                            ? 'text-slate-400 italic'
-                            : alert.flagged
-                            ? 'text-amber-900'
-                            : 'text-ink')
-                        }
-                      >
-                        {alert.flagged && '⚠️ '}{alert.patientResponse}
+                      <p className={'mt-1.5 flex items-start gap-1.5 text-[12px] font-semibold ' + (alert.patientResponse === 'No response' ? 'text-slate-400 italic' : alert.flagged ? 'text-amber-900' : 'text-ink')}>
+                        {alert.flagged && <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-label="Flagged response" />}
+                        {alert.patientResponse}
                       </p>
                     </div>
                   </div>
