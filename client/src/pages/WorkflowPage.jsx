@@ -27,8 +27,10 @@ import {
   Save,
   AlertCircle,
   RefreshCw,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react'
-import { Button, Badge, Spinner, Logo } from '../components/atoms'
+import { Button, Badge, Spinner } from '../components/atoms'
 import { nodeTypes } from '../components/workflow/nodeTypes'
 import NodeConfigPanel from '../components/workflow/NodeConfigPanel'
 import flowService from '../services/flowService'
@@ -162,6 +164,7 @@ export default function WorkflowPage() {
   const [sessions, setSessions] = useState([])
   const [boundSessionIds, setBoundSessionIds] = useState([])
   const [error, setError] = useState('')
+  const [paletteCollapsed, setPaletteCollapsed] = useState(false)
   const [publishing, setPublishing] = useState(false)
 
   const loadFlow = useCallback(async () => {
@@ -305,8 +308,6 @@ export default function WorkflowPage() {
           >
             Back
           </Button>
-          <span className="hidden sm:block"><Logo /></span>
-          <span className="h-6 w-px bg-line" />
           <input
             className="rounded-lg px-2 py-1 font-display text-lg font-bold text-ink outline-none hover:bg-canvas focus:bg-canvas"
             value={flow.name}
@@ -349,39 +350,34 @@ export default function WorkflowPage() {
 
       <div className="flex flex-1 overflow-hidden">
         {/* Palette */}
-        <aside className="flex w-60 shrink-0 flex-col border-r border-line bg-white">
-          <div className="border-b border-line px-4 py-3.5">
-            <p className="font-display text-sm font-bold text-ink">Add node</p>
-            <p className="text-xs text-muted">Click to drop onto the canvas</p>
+        <aside className={`flex shrink-0 flex-col border-r border-line bg-white transition-[width] duration-200 ${paletteCollapsed ? 'w-14' : 'w-60'}`}>
+          <div className={`flex border-b border-line py-3.5 ${paletteCollapsed ? 'justify-center px-2' : 'items-start justify-between px-4'}`}>
+            {!paletteCollapsed && <div><p className="font-display text-sm font-bold text-ink">Add node</p><p className="text-xs text-muted">Click to add to canvas</p></div>}
+            <button type="button" onClick={() => setPaletteCollapsed((value) => !value)} className="grid h-7 w-7 place-items-center rounded-lg text-muted transition hover:bg-canvas hover:text-ink" title={paletteCollapsed ? 'Expand node rail' : 'Collapse node rail'}>{paletteCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}</button>
           </div>
-          <div className="flex-1 space-y-5 overflow-y-auto px-4 py-4">
+          <div className={`flex-1 space-y-5 overflow-y-auto py-4 ${paletteCollapsed ? 'px-2' : 'px-4'}`}>
             {paletteGroups.map(({ group, items }) => (
               <div key={group}>
-                <p className="eyebrow mb-2">{group}</p>
+                {!paletteCollapsed && <p className="eyebrow mb-2">{group}</p>}
                 <div className="space-y-1.5">
                   {items.map(({ type, label, Icon, hint }) => (
                     <button
                       key={type}
                       onClick={() => addNode(type)}
                       title={hint}
-                      className="group flex w-full items-start gap-2.5 rounded-xl border border-line bg-white px-3 py-2 text-left transition hover:border-brand-300 hover:bg-brand-50"
+                      className={`group flex w-full items-start rounded-xl border border-line bg-white text-left transition hover:border-brand-300 hover:bg-brand-50 ${paletteCollapsed ? 'justify-center p-2' : 'gap-2.5 px-3 py-2'}`}
                     >
                       <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-600 group-hover:bg-white">
                         <Icon className="h-4 w-4" />
                       </span>
-                      <span className="min-w-0">
-                        <span className="block text-sm font-semibold text-ink">{label}</span>
-                        <span className="block truncate text-xs text-muted">{hint}</span>
-                      </span>
+                      {!paletteCollapsed && <span className="min-w-0"><span className="block text-sm font-semibold text-ink">{label}</span><span className="block truncate text-xs text-muted">{hint}</span></span>}
                     </button>
                   ))}
                 </div>
               </div>
             ))}
           </div>
-          <p className="border-t border-line px-4 py-3 text-xs text-muted">
-            Tip: drag from a node&apos;s bottom dot to another node to connect steps.
-          </p>
+          {!paletteCollapsed && <p className="border-t border-line px-4 py-3 text-xs text-muted">Tip: drag from a node&apos;s bottom dot to another node to connect steps.</p>}
         </aside>
 
         {/* Canvas */}

@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { Send, Bot, BotOff, Search, StickyNote, X, Plus, Trash2 } from 'lucide-react'
+import { Send, Bot, BotOff, Search, StickyNote, X, Plus, Trash2, MessageSquareText, UserRound } from 'lucide-react'
 import { Button, Badge, Spinner, Label, Alert } from '../../components/atoms'
 import useRealtime from '../../hooks/useRealtime'
 import inboxService from '../../services/inboxService'
@@ -44,10 +44,11 @@ export default function Inbox() {
   const active = conversations.find((c) => c.phone === activePhone)
 
   return (
-    <div className="flex h-[calc(100vh-12rem)] min-h-[34rem] max-h-[48rem] gap-4 overflow-hidden">
+    <div className="flex h-[calc(100vh-12rem)] min-h-[34rem] max-h-[48rem] gap-4 overflow-hidden rounded-[24px] border border-line bg-white p-3">
       {/* Conversations list */}
-      <div className="flex min-h-0 w-72 shrink-0 flex-col rounded-2xl border border-line bg-surface">
+      <div className="flex min-h-0 w-80 shrink-0 flex-col overflow-hidden rounded-2xl border border-line bg-surface">
         <div className="border-b border-line p-3">
+          <div className="mb-4 flex items-center gap-3 px-1"><span className="grid h-9 w-9 place-items-center rounded-xl bg-night-900 text-white"><MessageSquareText className="h-4 w-4" /></span><div><p className="text-sm font-semibold text-ink">Care communications</p><p className="text-xs text-muted">Patient conversations</p></div></div>
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
@@ -89,8 +90,8 @@ export default function Inbox() {
                   inboxService.markRead(c.phone).then(load)
                 }}
                 className={
-                  'flex w-full items-start gap-2 border-b border-line px-3 py-2.5 text-left transition hover:bg-slate-50 ' +
-                  (activePhone === c.phone ? 'bg-brand-50' : '')
+                  'flex w-full items-start gap-3 border-b border-line px-3.5 py-3 text-left transition hover:bg-canvas ' +
+                  (activePhone === c.phone ? 'bg-brand-50/70 shadow-[inset_3px_0_0_0_#278b84]' : '')
                 }
               >
                 <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand-100 text-sm font-bold text-brand-700">
@@ -175,10 +176,10 @@ function Details({ conversation, onChanged }) {
   const attrs = conversation.attributes || {}
 
   return (
-    <div className="flex min-h-0 w-72 shrink-0 flex-col gap-4 overflow-y-auto rounded-2xl border border-line bg-surface p-4">
+    <div className="flex min-h-0 w-80 shrink-0 flex-col gap-5 overflow-y-auto rounded-2xl border border-line bg-surface p-4">
       {/* Bot control */}
       <div>
-        <Label>Automation</Label>
+        <Label>Conversation owner</Label>
         <Button
           fullWidth
           variant={conversation.botPaused ? 'primary' : 'secondary'}
@@ -191,7 +192,7 @@ function Details({ conversation, onChanged }) {
 
       {/* Status */}
       <div>
-        <Label>Status</Label>
+        <Label>Care status</Label>
         <select
           className="input-base"
           value={conversation.status || 'open'}
@@ -205,7 +206,7 @@ function Details({ conversation, onChanged }) {
 
       {/* Tags */}
       <div>
-        <Label>Tags</Label>
+        <Label>Care labels</Label>
         <div className="mb-2 flex flex-wrap gap-1.5">
           {tags.map((t) => (
             <span key={t} className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700">
@@ -218,7 +219,7 @@ function Details({ conversation, onChanged }) {
         <div className="flex gap-1.5">
           <input
             className="input-base"
-            placeholder="Add tag"
+            placeholder="Add care label"
             value={tagInput}
             onChange={(e) => setTagInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addTag()}
@@ -230,7 +231,7 @@ function Details({ conversation, onChanged }) {
       {/* Attributes (CRM-lite) */}
       {Object.keys(attrs).length > 0 && (
         <div>
-          <Label>Details</Label>
+          <Label>Patient reference</Label>
           <div className="space-y-1 rounded-xl border border-line bg-canvas p-2.5 text-sm">
             {Object.entries(attrs).map(([k, v]) => (
               <div key={k} className="flex justify-between gap-2">
@@ -244,7 +245,7 @@ function Details({ conversation, onChanged }) {
 
       {/* Notes */}
       <div>
-        <Label className="flex items-center gap-1"><StickyNote className="h-3.5 w-3.5" /> Internal notes</Label>
+        <Label className="flex items-center gap-1"><StickyNote className="h-3.5 w-3.5" /> Care coordination notes</Label>
         <div className="mb-2 space-y-1.5">
           {notes.map((n) => (
             <div key={n.id} className="rounded-lg bg-amber-50 px-2.5 py-1.5 text-xs text-amber-900">
@@ -255,7 +256,7 @@ function Details({ conversation, onChanged }) {
         <div className="flex gap-1.5">
           <input
             className="input-base"
-            placeholder="Add a note"
+            placeholder="Add an internal handoff note"
             value={noteInput}
             onChange={(e) => setNoteInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addNote()}
@@ -319,12 +320,12 @@ function Thread({ conversation, onDelete, deleteError, setDeleteError }) {
   }
 
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col rounded-2xl border border-line bg-surface">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-line bg-surface">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-line px-4 py-3">
         <div>
           <p className="font-semibold text-ink">{conversation.name || phone}</p>
-          <p className="text-xs text-muted">+{phone}</p>
+          <p className="flex items-center gap-1.5 text-xs text-muted"><UserRound className="h-3 w-3" />+{phone}<span className="text-line">•</span>Patient communication</p>
         </div>
         <div className="flex items-center gap-2">
           <Badge tone={statusTone[conversation.status || 'open']}>{conversation.status || 'open'}</Badge>
@@ -343,15 +344,15 @@ function Thread({ conversation, onDelete, deleteError, setDeleteError }) {
       {deleteError && <Alert tone="error" className="m-3 mb-0">{deleteError}</Alert>}
 
       {/* Messages */}
-      <div ref={scrollRef} className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-canvas p-4">
+      <div ref={scrollRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-[#f6f7f4] p-5">
         {messages.map((m) => (
           <div key={m.id} className={'flex ' + (m.direction === 'out' ? 'justify-end' : 'justify-start')}>
             <div
               className={
                 'max-w-[75%] rounded-2xl px-3 py-2 text-sm ' +
                 (m.direction === 'out'
-                  ? 'rounded-br-sm bg-brand-600 text-white'
-                  : 'rounded-bl-sm border border-line bg-white text-ink')
+                  ? 'rounded-br-sm bg-night-900 text-white'
+                  : 'rounded-bl-sm border border-line bg-white text-ink shadow-[0_1px_1px_rgba(16,24,40,0.02)]')
               }
             >
               {m.body}
