@@ -1,5 +1,4 @@
 const express = require('express')
-const { auth } = require('../middleware/auth')
 const store = require('../services/store')
 const {
   validateCarousel,
@@ -13,7 +12,6 @@ const { validateList } = require('../services/lists')
 const { sanitizeSendPayload } = require('../services/sendPayload')
 
 const router = express.Router()
-router.use(auth)
 
 const base = (uid) => `users/${uid}/flows`
 

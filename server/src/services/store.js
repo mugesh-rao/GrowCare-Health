@@ -1,219 +1,112 @@
 /**
- * store — a tiny document database abstraction over Firestore paths.
+ * Local document storage backed by one SQLite database.
  *
- * Backends:
- *   - Firestore (when Firebase Admin is configured) → production
- *   - File store under server/.data (local dev, no credentials needed)
- *
- * Path semantics mirror Firestore: an EVEN number of segments addresses a
- * document ("users/uid"), an ODD number addresses a collection ("users/uid/flows").
+ * The route layer keeps its original document-path API (for example,
+ * `users/local-owner/flows/abc`). SQLite stores JSON documents with their path
+ * metadata, giving the desktop app a transactional, portable local database.
  */
 const fs = require('fs')
-const fsp = require('fs/promises')
 const path = require('path')
-const { db, firebaseEnabled } = require('../config/firebase')
+const { DatabaseSync } = require('node:sqlite')
 
-const genId = () =>
-  Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
+const DATA_DIR = process.env.APP_DATA_DIR || path.join(process.cwd(), '.data')
+fs.mkdirSync(DATA_DIR, { recursive: true })
 
-/* ----------------------------- Firestore backend ----------------------------- */
-const firestoreBackend = {
-  async getDoc(p) {
-    const snap = await db.doc(p).get()
-    return snap.exists ? { id: snap.id, ...snap.data() } : null
-  },
-  async setDoc(p, data, merge = true) {
-    await db.doc(p).set(data, { merge })
-  },
-  async updateDoc(p, data) {
-    await db.doc(p).set(data, { merge: true })
-  },
-  async deleteDoc(p) {
-    await db.doc(p).delete()
-  },
-  async listDocs(colPath, filters = []) {
-    let q = db.collection(colPath)
-    for (const [field, op, value] of filters) q = q.where(field, op, value)
-    const snap = await q.get()
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() }))
-  },
-  async countDocs(colPath, filters = []) {
-    let q = db.collection(colPath)
-    for (const [field, op, value] of filters) q = q.where(field, op, value)
-    const snap = await q.count().get()
-    return snap.data().count
-  },
+const database = new DatabaseSync(path.join(DATA_DIR, 'growcare.sqlite3'))
+database.exec(`
+  PRAGMA journal_mode = WAL;
+  CREATE TABLE IF NOT EXISTS documents (
+    path TEXT PRIMARY KEY,
+    collection_path TEXT NOT NULL,
+    id TEXT NOT NULL,
+    data TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS documents_collection_path ON documents(collection_path);
+`)
+
+const genId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
+const collectionForDoc = (docPath) => docPath.split('/').slice(0, -1).join('/')
+const idForDoc = (docPath) => docPath.split('/').at(-1)
+const parseDoc = (row) => (row ? { id: row.id, ...JSON.parse(row.data) } : null)
+
+function docsInCollection(collectionPath) {
+  return database
+    .prepare('SELECT id, data FROM documents WHERE collection_path = ?')
+    .all(collectionPath)
+    .map(parseDoc)
 }
 
-/* ------------------------------- File backend -------------------------------- */
-const DATA_DIR = path.join(process.cwd(), '.data')
+const sqlite = {
+  async getDoc(docPath) {
+    return parseDoc(database.prepare('SELECT id, data FROM documents WHERE path = ?').get(docPath))
+  },
 
-const fileForDoc = (p) => path.join(DATA_DIR, ...p.split('/')) + '.json'
-const dirForCol = (p) => path.join(DATA_DIR, ...p.split('/'))
+  async setDoc(docPath, data, merge = true) {
+    const existing = merge ? await this.getDoc(docPath) : null
+    const next = merge ? { ...(existing || {}), ...data } : { ...data }
+    delete next.id
+    database
+      .prepare(`INSERT INTO documents (path, collection_path, id, data) VALUES (?, ?, ?, ?)
+        ON CONFLICT(path) DO UPDATE SET
+          collection_path = excluded.collection_path,
+          id = excluded.id,
+          data = excluded.data`)
+      .run(docPath, collectionForDoc(docPath), idForDoc(docPath), JSON.stringify(next))
+  },
 
-const fileBackend = {
-  async getDoc(p) {
-    try {
-      const raw = await fsp.readFile(fileForDoc(p), 'utf8')
-      return JSON.parse(raw)
-    } catch {
-      return null
-    }
+  async updateDoc(docPath, data) {
+    await this.setDoc(docPath, data, true)
   },
-  async setDoc(p, data, merge = true) {
-    const file = fileForDoc(p)
-    await fsp.mkdir(path.dirname(file), { recursive: true })
-    let next = data
-    if (merge) {
-      const existing = (await this.getDoc(p)) || {}
-      next = { ...existing, ...data }
-    }
-    const id = p.split('/').pop()
-    await fsp.writeFile(file, JSON.stringify({ id, ...next }, null, 2))
+
+  async deleteDoc(docPath) {
+    database.prepare('DELETE FROM documents WHERE path = ?').run(docPath)
   },
-  async updateDoc(p, data) {
-    await this.setDoc(p, data, true)
+
+  async deletePathAndDescendants(docPath) {
+    database.prepare('DELETE FROM documents WHERE path = ? OR path LIKE ?').run(docPath, `${docPath}/%`)
   },
-  async deleteDoc(p) {
-    try {
-      await fsp.unlink(fileForDoc(p))
-    } catch {
-      /* already gone */
-    }
-  },
-  async listDocs(colPath, filters = []) {
-    const dir = dirForCol(colPath)
-    let files = []
-    try {
-      files = (await fsp.readdir(dir)).filter((f) => f.endsWith('.json'))
-    } catch {
-      return []
-    }
-    let docs = await Promise.all(
-      files.map((f) =>
-        fsp
-          .readFile(path.join(dir, f), 'utf8')
-          .then(JSON.parse)
-          .catch(() => null),
-      ),
-    )
-    docs = docs.filter(Boolean)
-    for (const [field, op, value] of filters) {
-      docs = docs.filter((d) => {
-        if (op === '==') return d[field] === value
-        if (op === '!=') return d[field] !== value
+
+  async listDocs(collectionPath, filters = []) {
+    let documents = docsInCollection(collectionPath)
+    for (const [field, operator, value] of filters) {
+      documents = documents.filter((document) => {
+        if (operator === '==') return document[field] === value
+        if (operator === '!=') return document[field] !== value
         return true
       })
     }
-    return docs
+    return documents
   },
-  async countDocs(colPath, filters = []) {
-    return (await this.listDocs(colPath, filters)).length
+
+  async countDocs(collectionPath, filters = []) {
+    return (await this.listDocs(collectionPath, filters)).length
   },
 }
 
-if (!firebaseEnabled && !fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true })
-}
-
-/**
- * listAllSessions — enumerate every session across all users (for boot
- * reconnect). Returns [{ uid, sessionId, ...data }].
- */
 async function listAllSessions() {
-  if (firebaseEnabled) {
-    const snap = await db.collectionGroup('sessions').get()
-    return snap.docs.map((d) => ({
-      uid: d.ref.parent.parent.id,
-      sessionId: d.id,
-      ...d.data(),
-    }))
-  }
-  // File backend: walk .data/users/<uid>/sessions/*.json
-  const usersDir = path.join(DATA_DIR, 'users')
-  const out = []
-  let uids = []
-  try {
-    uids = await fsp.readdir(usersDir)
-  } catch {
-    return out
-  }
-  for (const uid of uids) {
-    const sessionsDir = path.join(usersDir, uid, 'sessions')
-    let files = []
-    try {
-      files = (await fsp.readdir(sessionsDir)).filter((f) => f.endsWith('.json'))
-    } catch {
-      continue
-    }
-    for (const f of files) {
-      try {
-        const data = JSON.parse(
-          await fsp.readFile(path.join(sessionsDir, f), 'utf8'),
-        )
-        out.push({ uid, sessionId: f.replace(/\.json$/, ''), ...data })
-      } catch {
-        /* skip */
-      }
-    }
-  }
-  return out
+  return database
+    .prepare("SELECT path, id, data FROM documents WHERE collection_path LIKE 'users/%/sessions'")
+    .all()
+    .map((row) => ({ uid: row.path.split('/')[1], sessionId: row.id, ...JSON.parse(row.data) }))
 }
 
-/**
- * listAllScheduled — enumerate pending scheduled messages across all users
- * (for the scheduler worker). Returns [{ uid, id, ...data }].
- */
 async function listAllScheduled() {
-  if (firebaseEnabled) {
-    const snap = await db
-      .collectionGroup('scheduled')
-      .where('status', '==', 'pending')
-      .get()
-    return snap.docs.map((d) => ({
-      uid: d.ref.parent.parent.id,
-      id: d.id,
-      ...d.data(),
-    }))
-  }
-  const usersDir = path.join(DATA_DIR, 'users')
-  const out = []
-  let uids = []
-  try {
-    uids = await fsp.readdir(usersDir)
-  } catch {
-    return out
-  }
-  for (const uid of uids) {
-    const dir = path.join(usersDir, uid, 'scheduled')
-    let files = []
-    try {
-      files = (await fsp.readdir(dir)).filter((f) => f.endsWith('.json'))
-    } catch {
-      continue
-    }
-    for (const f of files) {
-      try {
-        const data = JSON.parse(await fsp.readFile(path.join(dir, f), 'utf8'))
-        if (data.status === 'pending') out.push({ uid, id: f.replace(/\.json$/, ''), ...data })
-      } catch {
-        /* skip */
-      }
-    }
-  }
-  return out
+  return database
+    .prepare("SELECT path, id, data FROM documents WHERE collection_path LIKE 'users/%/scheduled'")
+    .all()
+    .map((row) => ({ uid: row.path.split('/')[1], id: row.id, ...JSON.parse(row.data) }))
+    .filter((scheduled) => scheduled.status === 'pending')
 }
-
-const backend = firebaseEnabled ? firestoreBackend : fileBackend
 
 module.exports = {
   genId,
-  getDoc: (p) => backend.getDoc(p),
-  setDoc: (p, data, merge) => backend.setDoc(p, data, merge),
-  updateDoc: (p, data) => backend.updateDoc(p, data),
-  deleteDoc: (p) => backend.deleteDoc(p),
-  listDocs: (p, filters) => backend.listDocs(p, filters),
-  countDocs: (p, filters) => backend.countDocs(p, filters),
+  getDoc: (path) => sqlite.getDoc(path),
+  setDoc: (path, data, merge) => sqlite.setDoc(path, data, merge),
+  updateDoc: (path, data) => sqlite.updateDoc(path, data),
+  deleteDoc: (path) => sqlite.deleteDoc(path),
+  deletePathAndDescendants: (path) => sqlite.deletePathAndDescendants(path),
+  listDocs: (path, filters) => sqlite.listDocs(path, filters),
+  countDocs: (path, filters) => sqlite.countDocs(path, filters),
   listAllSessions,
   listAllScheduled,
 }

@@ -4,7 +4,7 @@ import { Card, Button, Label, Badge, Alert, Spinner } from '../../components/ato
 import ConnectWhatsAppModal from '../../components/organisms/ConnectWhatsAppModal'
 import NumberSafetyCard from '../../components/organisms/NumberSafetyCard'
 import useRealtime from '../../hooks/useRealtime'
-import { useAuth } from '../../context/AuthContext'
+import { useProfile } from '../../context/ProfileContext'
 import userService from '../../services/userService'
 import waService from '../../services/waService'
 
@@ -28,7 +28,7 @@ const statusLabel = {
 }
 
 export default function Settings() {
-  const { user, refreshProfile } = useAuth()
+  const { user, refreshProfile } = useProfile()
 
   // Profile
   const [name, setName] = useState(user?.name || '')

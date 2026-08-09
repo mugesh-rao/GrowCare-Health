@@ -4,11 +4,10 @@ import {
   MessageSquareText,
   Users,
   ChevronLeft,
-  LogOut,
 } from 'lucide-react'
 import { Logo } from '../atoms'
 import { cn } from '../../lib/cn'
-import { useAuth } from '../../context/AuthContext'
+import { useProfile } from '../../context/ProfileContext'
 
 const nav = [
   { to: '/dashboard', label: 'Dashboard', Icon: LayoutDashboard, end: true },
@@ -17,7 +16,7 @@ const nav = [
 ]
 
 export default function Sidebar({ collapsed, onToggle }) {
-  const { user, logout } = useAuth()
+  const { user } = useProfile()
 
   return (
     <aside
@@ -77,15 +76,6 @@ export default function Sidebar({ collapsed, onToggle }) {
               </p>
               <p className="truncate text-xs text-slate-400">{user?.email}</p>
             </div>
-          )}
-          {!collapsed && (
-            <button
-              onClick={logout}
-              title="Log out"
-              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-white/10 hover:text-white"
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
           )}
         </div>
 

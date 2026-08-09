@@ -1,9 +1,6 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider } from './context/AuthContext'
-import ProtectedRoute from './routes/ProtectedRoute'
-import OnboardingRoute from './routes/OnboardingRoute'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { ProfileProvider } from './context/ProfileContext'
 import DashboardLayout from './components/layout/DashboardLayout'
-import Login from './pages/auth/Login'
 import Onboarding from './pages/Onboarding'
 import NewPatientPage from './pages/Clinic/NewPatientPage'
 import PatientDetailPage from './pages/Clinic/PatientDetailPage'
@@ -15,28 +12,12 @@ import WorkflowPage from './pages/WorkflowPage'
 export default function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
+      <ProfileProvider>
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/login" element={<Login />} />
-          <Route
-            path="/onboarding"
-            element={
-              <OnboardingRoute>
-                <Onboarding />
-              </OnboardingRoute>
-            }
-          />
-
-          {/* Dashboard shell with collapsible sidebar */}
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <DashboardLayout />
-              </ProtectedRoute>
-            }
-          >
+          <Route path="/login" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/onboarding" element={<Onboarding />} />
+          <Route path="/dashboard" element={<DashboardLayout />}>
             <Route index element={<DashboardHub />} />
             <Route path="whatsapp" element={<WhatsAppHub />} />
             <Route path="patients" element={<PatientsPage />} />
@@ -50,20 +31,10 @@ export default function App() {
             <Route path="templates" element={<Navigate to="/dashboard/whatsapp?tab=templates" replace />} />
             <Route path="settings" element={<Navigate to="/dashboard/whatsapp?tab=settings" replace />} />
           </Route>
-
-          {/* Full-screen workflow editor */}
-          <Route
-            path="/workflow/:id"
-            element={
-              <ProtectedRoute>
-                <WorkflowPage />
-              </ProtectedRoute>
-            }
-          />
-
+          <Route path="/workflow/:id" element={<WorkflowPage />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
-      </AuthProvider>
+      </ProfileProvider>
     </BrowserRouter>
   )
 }

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Logo, Button, Label, Alert } from '../components/atoms'
 import { FormField } from '../components/molecules'
-import { useAuth } from '../context/AuthContext'
+import { useProfile } from '../context/ProfileContext'
 import userService from '../services/userService'
 
 const businessTypes = [
@@ -17,7 +17,7 @@ const businessTypes = [
 
 export default function Onboarding() {
   const navigate = useNavigate()
-  const { user, refreshProfile } = useAuth()
+  const { user, refreshProfile } = useProfile()
   const [form, setForm] = useState({
     name: user?.name || '',
     businessType: '',

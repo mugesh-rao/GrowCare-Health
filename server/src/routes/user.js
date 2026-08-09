@@ -1,10 +1,8 @@
 const express = require('express')
-const { auth } = require('../middleware/auth')
 const store = require('../services/store')
 const antiBan = require('../services/antiBan')
 
 const router = express.Router()
-router.use(auth)
 
 // GET /api/user/antiban — number-safety config (merged with defaults).
 router.get('/antiban', async (req, res) => {

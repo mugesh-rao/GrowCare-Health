@@ -1,11 +1,9 @@
 const express = require('express')
-const { auth } = require('../middleware/auth')
 const store = require('../services/store')
 const wa = require('../services/whatsappService')
 const { sanitizeSendPayload } = require('../services/sendPayload')
 
 const router = express.Router()
-router.use(auth)
 
 // POST /api/wa/sessions — create + start a session (QR streamed over /ws).
 router.post('/sessions', async (req, res) => {

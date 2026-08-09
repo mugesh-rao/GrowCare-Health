@@ -1,12 +1,7 @@
-/* eslint-disable no-useless-assignment */
 import { useEffect, useRef } from 'react'
-import { firebaseEnabled, getIdToken } from '../lib/firebase'
-import { CONFIG } from '../lib/config'
+import { getLocalServerConfig } from '../lib/localServer'
 
-/**
- * useRealtime — subscribe to the server's /ws hub for qr / status / message
- * events. Calls `onEvent(payload)` for each message. Auto-reconnects.
- */
+/** Subscribe to local QR, status, and incoming-message events from the sidecar. */
 export default function useRealtime(onEvent) {
   const handlerRef = useRef(onEvent)
 
@@ -20,27 +15,21 @@ export default function useRealtime(onEvent) {
     let retry
 
     async function connect() {
-      const base = CONFIG.WS_URL
-
-      let qs = ''
-      if (firebaseEnabled) {
-        const token = await getIdToken()
-        qs = token ? `?token=${encodeURIComponent(token)}` : ''
-      } else {
-        qs = `?uid=${encodeURIComponent(
-          localStorage.getItem('wa_dev_uid') || 'dev-user',
-        )}`
-      }
-
-      ws = new WebSocket(`${base}/ws${qs}`)
-      ws.onmessage = (e) => {
-        try {
-          handlerRef.current?.(JSON.parse(e.data))
-        } catch {
-          /* ignore */
+      try {
+        const server = await getLocalServerConfig()
+        if (closed) return
+        ws = new WebSocket(`${server.wsUrl}/ws`)
+        ws.onmessage = (event) => {
+          try {
+            handlerRef.current?.(JSON.parse(event.data))
+          } catch {
+            // Ignore malformed sidecar events.
+          }
         }
-      }
-      ws.onclose = () => {
+        ws.onclose = () => {
+          if (!closed) retry = setTimeout(connect, 3000)
+        }
+      } catch {
         if (!closed) retry = setTimeout(connect, 3000)
       }
     }

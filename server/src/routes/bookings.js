@@ -1,9 +1,7 @@
 const express = require('express')
-const { auth } = require('../middleware/auth')
 const store = require('../services/store')
 
 const router = express.Router()
-router.use(auth)
 
 // GET /api/bookings — upcoming-first list of appointments/reservations.
 router.get('/', async (req, res) => {

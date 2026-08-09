@@ -1,4 +1,4 @@
-import { useAuth } from '../../context/AuthContext'
+import { useProfile } from '../../context/ProfileContext'
 
 /**
  * Header — the consistent top bar used across the app shell.
@@ -6,7 +6,7 @@ import { useAuth } from '../../context/AuthContext'
  * the page's primary action(s).
  */
 export default function Header({ title, subtitle, actions }) {
-  const { user } = useAuth()
+  const { user } = useProfile()
   return (
     <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center justify-between border-b border-line bg-white/90 px-6 backdrop-blur">
       <div className="min-w-0">

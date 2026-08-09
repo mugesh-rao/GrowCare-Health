@@ -14,7 +14,7 @@ import {
 import { Card, Spinner, Button, Badge } from '../../components/atoms'
 import useRealtime from '../../hooks/useRealtime'
 import useHeaderActions from '../../hooks/useHeaderActions'
-import { useAuth } from '../../context/AuthContext'
+import { useProfile } from '../../context/ProfileContext'
 import userService from '../../services/userService'
 import waService from '../../services/waService'
 import flowService from '../../services/flowService'
@@ -37,7 +37,7 @@ const statusTone = {
 
 export default function Overview() {
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user } = useProfile()
   const [stats, setStats] = useState(null)
   const [sessions, setSessions] = useState([])
   const [flows, setFlows] = useState([])

@@ -1,10 +1,8 @@
 const express = require('express')
-const { auth } = require('../middleware/auth')
 const { publicProviders } = require('../config/ai')
 const ai = require('../services/aiService')
 
 const router = express.Router()
-router.use(auth)
 
 // GET /api/ai/providers — dynamic provider list for the workflow AI node.
 router.get('/providers', (req, res) => {

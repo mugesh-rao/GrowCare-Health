@@ -1,0 +1,43 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "GrowCare",
+  "version": "1.0.0",
+  "identifier": "com.growcare.desktop",
+  "build": {
+    "beforeDevCommand": "npm run prepare:desktop && npm --prefix client run dev",
+    "beforeBuildCommand": "npm run prepare:desktop && npm --prefix client run build",
+    "devUrl": "http://localhost:5173",
+    "frontendDist": "../client/dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "GrowCare",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 1024,
+        "minHeight": 700,
+        "resizable": true,
+        "maximizable": true,
+        "minimizable": true,
+        "visible": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self' http://127.0.0.1:17842 ws://127.0.0.1:17842; connect-src 'self' http://127.0.0.1:17842 ws://127.0.0.1:17842 https:; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline'; script-src 'self'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": ["icons/icon.ico", "icons/icon.png"],
+    "resources": ["resources/node", "resources/server"],
+    "windows": {
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper",
+        "silent": true
+      }
+    }
+  }
+}

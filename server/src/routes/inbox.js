@@ -1,10 +1,8 @@
 const express = require('express')
-const { auth } = require('../middleware/auth')
 const store = require('../services/store')
 const wa = require('../services/whatsappService')
 
 const router = express.Router()
-router.use(auth)
 
 const contactsPath = (uid) => `users/${uid}/contacts`
 const contactPath = (uid, phone) => `users/${uid}/contacts/${phone}`
@@ -98,6 +96,15 @@ router.patch('/conversations/:phone', async (req, res) => {
 // POST /api/inbox/conversations/:phone/read
 router.post('/conversations/:phone/read', async (req, res) => {
   await store.setDoc(contactPath(req.user.uid, req.params.phone), { unread: 0 })
+  res.json({ ok: true })
+})
+
+router.delete('/conversations/:phone', async (req, res) => {
+  const { uid } = req.user
+  const phone = req.params.phone
+  await store.deletePathAndDescendants(contactPath(uid, phone))
+  const messages = await store.listDocs(`users/${uid}/messages`, [['contactId', '==', phone]])
+  await Promise.all(messages.map((message) => store.deleteDoc(`users/${uid}/messages/${message.id}`)))
   res.json({ ok: true })
 })
 
