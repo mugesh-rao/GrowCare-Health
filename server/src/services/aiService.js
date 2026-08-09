@@ -1,4 +1,20 @@
 const { PROVIDERS, resolveBaseUrl } = require('../config/ai')
+const store = require('./store')
+
+async function localAiSettings(uid) {
+  const user = await store.getDoc(`users/${uid || 'local-owner'}`)
+  return user?.aiSettings || {}
+}
+
+async function resolveCredentials({ uid, provider = 'openai', apiKey, model, preferProvidedKey = false }) {
+  const settings = provider === 'openai' ? await localAiSettings(uid) : {}
+  return {
+    // A temporary key supplied by the settings "Test" action must take precedence
+    // without changing the key the rest of the application uses.
+    apiKey: (preferProvidedKey && apiKey) || settings.apiKey || apiKey || process.env.OPENAI_API_KEY || '',
+    model: settings.model || model || '',
+  }
+}
 
 function extractJsonObject(text = '') {
   const raw = String(text || '').trim()
@@ -32,6 +48,7 @@ function clampConfidence(value) {
  * The AI node supplies: provider, apiKey, model, systemPrompt (+ baseURL for custom).
  */
 async function generateReply({
+  uid,
   provider = 'openai',
   apiKey,
   baseURL,
@@ -41,14 +58,15 @@ async function generateReply({
   temperature,
 }) {
   const p = PROVIDERS[provider] || PROVIDERS.openai
-  const key = apiKey || process.env.OPENAI_API_KEY
+  const credentials = await resolveCredentials({ uid, provider, apiKey, model })
+  const key = credentials.apiKey
   if (!key) {
     return "Thanks for your message! (AI isn't configured yet — add a provider, API key and model to the AI node.)"
   }
 
   try {
     const base = resolveBaseUrl(p, baseURL)
-    const chosenModel = model || p.models[0]
+    const chosenModel = credentials.model || p.models[0]
     const url = base + p.endpointPath(chosenModel)
     const headers = { ...p.headers, [p.authHeader]: p.authPrefix + key }
     const body = p.buildBody(systemPrompt, userMessage, { model: chosenModel, temperature })
@@ -68,6 +86,7 @@ async function generateReply({
 }
 
 async function selectRoute({
+  uid,
   provider = 'openai',
   apiKey,
   baseURL,
@@ -78,7 +97,8 @@ async function selectRoute({
   contextVars = {},
 }) {
   const p = PROVIDERS[provider] || PROVIDERS.openai
-  const key = apiKey || process.env.OPENAI_API_KEY
+  const credentials = await resolveCredentials({ uid, provider, apiKey, model })
+  const key = credentials.apiKey
   if (!key) {
     return {
       route: null,
@@ -126,7 +146,7 @@ async function selectRoute({
 
   try {
     const base = resolveBaseUrl(p, baseURL)
-    const chosenModel = model || p.models[0]
+    const chosenModel = credentials.model || p.models[0]
     const url = base + p.endpointPath(chosenModel)
     const headers = { ...p.headers, [p.authHeader]: p.authPrefix + key }
     const body = p.buildBody(fixedSystemPrompt, routePrompt, {
@@ -160,12 +180,18 @@ async function selectRoute({
 }
 
 /** Fetch the live model list for a provider (throws on auth/network error). */
-async function fetchModels({ provider, apiKey, baseURL }) {
+async function fetchModels({ uid, provider, apiKey, baseURL }) {
   const p = PROVIDERS[provider]
   if (!p) throw new Error('Unknown provider')
   if (!p.modelsEndpoint) return p.models
   const base = resolveBaseUrl(p, baseURL)
-  const headers = { ...p.headers, [p.authHeader]: p.authPrefix + (apiKey || '') }
+  const credentials = await resolveCredentials({
+    uid,
+    provider,
+    apiKey,
+    preferProvidedKey: Boolean(apiKey),
+  })
+  const headers = { ...p.headers, [p.authHeader]: p.authPrefix + credentials.apiKey }
   const res = await fetch(base + p.modelsEndpoint, { headers })
   if (!res.ok) throw new Error(`Could not fetch models (${res.status})`)
   const data = await res.json()
@@ -176,4 +202,38 @@ async function fetchModels({ provider, apiKey, baseURL }) {
     .map((id) => String(id).replace(/^models\//, '')) // Gemini returns models/<id>
 }
 
-module.exports = { generateReply, fetchModels, selectRoute }
+async function generateScribeDraft({ uid, transcript, patient }) {
+  const settings = await localAiSettings(uid)
+  if (!settings.apiKey || !settings.useForScribing || !String(transcript || '').trim()) return null
+
+  const prompt = [
+    'Create a concise clinical visit draft from the supplied transcript.',
+    'Return JSON only with chiefComplaint, examination, diagnosis, followUp, and prescriptions.',
+    'prescriptions must be an array of { drug, dose, frequency, route, duration }. Do not invent facts. Use empty strings or an empty array where the transcript is unclear.',
+    `Patient context: ${JSON.stringify({ name: patient?.name, specialty: patient?.specialty, condition: patient?.condition })}`,
+    `Transcript:\n${String(transcript).slice(0, 180000)}`,
+  ].join('\n\n')
+
+  try {
+    const p = PROVIDERS.openai
+    const response = await fetch(resolveBaseUrl(p), {
+      method: p.method,
+      headers: { ...p.headers, [p.authHeader]: p.authPrefix + settings.apiKey },
+      body: JSON.stringify(p.buildBody('You are a clinical documentation assistant. Draft only; clinician review is required.', prompt, { model: settings.model || p.models[0], temperature: 0.1, maxTokens: 1600 })),
+    })
+    if (!response.ok) return null
+    const parsed = extractJsonObject(p.parseResponse(await response.json()))
+    if (!parsed || typeof parsed !== 'object') return null
+    return {
+      chiefComplaint: String(parsed.chiefComplaint || '').slice(0, 5000),
+      examination: String(parsed.examination || '').slice(0, 8000),
+      diagnosis: String(parsed.diagnosis || '').slice(0, 5000),
+      followUp: String(parsed.followUp || '').slice(0, 5000),
+      prescriptions: Array.isArray(parsed.prescriptions) ? parsed.prescriptions.slice(0, 20) : [],
+    }
+  } catch {
+    return null
+  }
+}
+
+module.exports = { generateReply, fetchModels, selectRoute, generateScribeDraft }

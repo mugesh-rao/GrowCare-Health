@@ -25,6 +25,14 @@ const userService = {
     const { data } = await api.put('/user/antiban', patch)
     return data.config
   },
+  async getAiSettings() {
+    const { data } = await api.get('/user/ai-settings')
+    return data.settings
+  },
+  async updateAiSettings(patch) {
+    const { data } = await api.put('/user/ai-settings', patch)
+    return data.settings
+  },
 }
 
 export default userService

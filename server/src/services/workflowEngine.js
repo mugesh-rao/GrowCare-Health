@@ -320,6 +320,7 @@ async function runFlow(flow, ctx) {
       const threshold = Math.max(0, Math.min(1, Number(data.confidenceThreshold ?? 0.55)))
       const saveAs = String(data.saveAs || 'router').trim() || 'router'
       const decision = await ai.selectRoute({
+        uid: ctx.uid,
         provider: data.provider,
         apiKey: data.apiKey,
         baseURL: data.baseURL,
@@ -343,6 +344,7 @@ async function runFlow(flow, ctx) {
       if (chosenRoute) queue.push(...nextNodes(flow, node.id, chosenRoute))
     } else if (node.type === 'ai') {
       const reply = await ai.generateReply({
+        uid: ctx.uid,
         provider: data.provider,
         apiKey: data.apiKey,
         baseURL: data.baseURL,

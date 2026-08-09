@@ -1,5 +1,6 @@
 const express = require('express')
 const store = require('../services/store')
+const ai = require('../services/aiService')
 
 const router = express.Router()
 
@@ -246,7 +247,11 @@ router.post('/patients/:patientId/scribe/:sessionId/stop', async (req, res) => {
   const patient = await store.getDoc(patientPath(uid, req.params.patientId))
   if (!session || !patient) return res.status(404).json({ message: 'Scribe session or patient not found.' })
   const transcript = String(req.body?.transcript ?? session.transcript ?? '').slice(0, 200000)
-  const draft = makeDraftNote(transcript, patient)
+  const localDraft = makeDraftNote(transcript, patient)
+  const aiDraft = await ai.generateScribeDraft({ uid, transcript, patient })
+  const draft = aiDraft
+    ? { ...localDraft, ...aiDraft, generatedAt: now(), generatedWith: 'Configured local OpenAI key' }
+    : localDraft
   await store.setDoc(path, { status: 'review', transcript, draft, stoppedAt: now(), updatedAt: now() })
   res.json({ session: await store.getDoc(path) })
 })

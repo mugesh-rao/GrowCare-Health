@@ -14,7 +14,7 @@ router.get('/providers', (req, res) => {
 router.post('/models', async (req, res) => {
   const { provider, apiKey, baseURL } = req.body || {}
   try {
-    const models = await ai.fetchModels({ provider, apiKey, baseURL })
+    const models = await ai.fetchModels({ uid: req.user.uid, provider, apiKey, baseURL })
     res.json({ models })
   } catch (e) {
     const { PROVIDERS } = require('../config/ai')

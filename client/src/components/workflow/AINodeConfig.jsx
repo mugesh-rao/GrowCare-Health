@@ -5,8 +5,8 @@ import aiService from '../../services/aiService'
 
 /**
  * AINodeConfig — dynamic AI provider configuration for the workflow AI node.
- * Provider list comes from the server (config/ai.js). The user picks a provider,
- * enters an API key, chooses/fetches a model, and writes a system prompt.
+ * Provider list comes from the server (config/ai.js). The shared local key is
+ * configured once in Settings > AI; this node only selects behavior and model.
  */
 export default function AINodeConfig({ data, update }) {
   const [providers, setProviders] = useState([])
@@ -41,7 +41,6 @@ export default function AINodeConfig({ data, update }) {
     try {
       const { models, error } = await aiService.models({
         provider: providerId,
-        apiKey: data.apiKey,
         baseURL: data.baseURL,
       })
       setModels(models || [])
@@ -63,16 +62,7 @@ export default function AINodeConfig({ data, update }) {
         </select>
       </div>
 
-      <div>
-        <Label>API key</Label>
-        <input
-          type="password"
-          className="input-base"
-          placeholder="Your provider API key"
-          value={data.apiKey || ''}
-          onChange={(e) => update({ apiKey: e.target.value })}
-        />
-      </div>
+      {providerId === 'openai' && <p className="rounded-xl border border-brand-100 bg-brand-50 px-3 py-2 text-xs text-brand-900">Uses the shared local OpenAI key from Settings → AI.</p>}
 
       {current?.custom && (
         <div>

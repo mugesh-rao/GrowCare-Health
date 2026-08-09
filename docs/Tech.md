@@ -32,11 +32,16 @@ This app does **not** use Tauri's official `externalBin` sidecar recipe (a singl
 
 **Images & documents — current state, needs to change.** `routes/clinical.js` (`POST /patients/:id/artifacts`) currently stores uploaded files as a **base64 string inside the same JSON `data` column** (`fileData`, capped at ~14,000,000 chars ≈ 14 MB decoded). That works but doesn't scale for a clinic uploading scans/PDFs: base64 adds ~33% size overhead, bloats the `.sqlite3` file and its WAL, slows `VACUUM`/backup, and gives no de-dup.
 
-Recommended fix (not yet implemented):
+**Database decision.** SQLite remains GrowCare's source of truth; we will not move primary records to NeDB. Patients, encounters, observations, scribe sessions, appointments, messages, workflows, and scheduled actions need reliable IDs, indexes, relationships, and atomic multi-write updates. The current document-shaped adapter is an application-layer convenience, not a limitation of SQLite. Existing routes keep their path API while explicit indexes/tables are added only for proven query needs and flexible clinical details stay in JSON fields.
+
+**Storage decision.** GrowCare is local-only. There is no S3, cloud replication, presigned URL, or cloud-storage package. Files remain on the clinic PC for offline-first access and are never uploaded by the app.
+
+Selected local-file implementation (not yet implemented):
 - Write the raw bytes to disk under `${APP_DATA_DIR}/documents/<patientId>/<sha256>-<fileName>` instead of embedding them in JSON.
 - Keep only metadata in the existing `documents` table row (`fileName`, `kind`, `mimeType`, `filePath`, `sizeBytes`, `sha256`, `createdAt`) — same table, just drop the giant base64 field.
 - Hash-on-write gives free de-dup and integrity checks, which matters for clinical documents.
-- This matches SQLite's own guidance: blobs meaningfully larger than ~100 KB are cheaper to keep as files referenced by path than as in-DB blobs.
+- The local Node server streams uploads to a temporary file, calculates SHA-256 while writing, validates the file, then atomically renames it into the patient directory. Fetches stream from local disk and support HTTP range requests for PDF, image, audio, and video previews.
+- Backups must include both `growcare.sqlite3` and the `documents/` tree. Use Windows user-profile/app-data protection and full-disk encryption such as BitLocker for clinic deployments.
 
 ## 3. LAN/hotspot device pairing (planned, not yet implemented)
 

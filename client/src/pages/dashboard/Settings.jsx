@@ -1,10 +1,12 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Mail, ShieldCheck, Smartphone, Plus, Power, Trash2, Check, Globe, User, Wifi } from 'lucide-react'
+import { Mail, ShieldCheck, Smartphone, Plus, Power, Trash2, Check, Globe, User, Wifi, Sparkles } from 'lucide-react'
 import { Card, Button, Label, Badge, Alert, Spinner } from '../../components/atoms'
 import ConnectWhatsAppModal from '../../components/organisms/ConnectWhatsAppModal'
 import NumberSafetyCard from '../../components/organisms/NumberSafetyCard'
+import AISettingsCard from '../../components/organisms/AISettingsCard'
 import NetworkPairingCard from '../../components/organisms/NetworkPairingCard'
+import LocalServerCard from '../../components/organisms/LocalServerCard'
 import useRealtime from '../../hooks/useRealtime'
 import { useProfile } from '../../context/ProfileContext'
 import userService from '../../services/userService'
@@ -31,8 +33,8 @@ const statusLabel = {
 
 const tabs = [
   { id: 'profile', label: 'My Information', Icon: User },
-  { id: 'whatsapp', label: 'WhatsApp Connection', Icon: Smartphone },
-  { id: 'safety', label: 'Safety', Icon: ShieldCheck },
+  { id: 'whatsapp', label: 'WhatsApp', Icon: Smartphone },
+  { id: 'ai', label: 'AI', Icon: Sparkles },
   { id: 'network', label: 'Network Pairing', Icon: Wifi },
 ]
 const validTabs = new Set(tabs.map((t) => t.id))
@@ -123,7 +125,7 @@ export default function Settings() {
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-700">Local workspace</p>
           <h1 className="mt-1 text-2xl font-bold text-ink">Settings</h1>
           <p className="mt-1 text-sm text-muted">
-            Manage your clinic profile, WhatsApp connections, number safety, and paired devices.
+            Manage your clinic profile, WhatsApp, local AI, and paired devices.
           </p>
         </div>
 
@@ -150,6 +152,8 @@ export default function Settings() {
         </div>
 
         {activeTab === 'profile' && (
+          <>
+          <LocalServerCard />
           <Card>
             <Card.Header>
               <span className="font-semibold text-ink">Your information</span>
@@ -185,9 +189,11 @@ export default function Settings() {
               </div>
             </Card.Body>
           </Card>
+          </>
         )}
 
         {activeTab === 'whatsapp' && (
+          <div className="space-y-6">
           <Card>
             <Card.Header className="flex items-center justify-between">
               <span className="flex items-center gap-2 font-semibold text-ink">
@@ -288,9 +294,11 @@ export default function Settings() {
               )}
             </Card.Body>
           </Card>
+          <NumberSafetyCard />
+          </div>
         )}
 
-        {activeTab === 'safety' && <NumberSafetyCard />}
+        {activeTab === 'ai' && <AISettingsCard />}
 
         {activeTab === 'network' && <NetworkPairingCard />}
       </div>

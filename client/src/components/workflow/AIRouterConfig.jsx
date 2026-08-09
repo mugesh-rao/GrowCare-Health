@@ -46,7 +46,6 @@ export default function AIRouterConfig({ data, update, routeTargets }) {
     try {
       const { models: nextModels, error } = await aiService.models({
         provider: providerId,
-        apiKey: data.apiKey,
         baseURL: data.baseURL,
       })
       setFetchedModels(nextModels || [])
@@ -74,16 +73,7 @@ export default function AIRouterConfig({ data, update, routeTargets }) {
         </select>
       </div>
 
-      <div>
-        <Label>API key</Label>
-        <input
-          type="password"
-          className="input-base"
-          placeholder="Your provider API key"
-          value={data.apiKey || ''}
-          onChange={(e) => update({ apiKey: e.target.value })}
-        />
-      </div>
+      {providerId === 'openai' && <p className="rounded-xl border border-brand-100 bg-brand-50 px-3 py-2 text-xs text-brand-900">Uses the shared local OpenAI key from Settings → AI.</p>}
 
       {current?.custom && (
         <div>

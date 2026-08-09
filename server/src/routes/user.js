@@ -29,6 +29,42 @@ router.put('/antiban', async (req, res) => {
   res.json({ config: await antiBan.getConfig(uid) })
 })
 
+// GET /api/user/ai-settings — return local AI configuration without exposing the secret.
+router.get('/ai-settings', async (req, res) => {
+  const user = await store.getDoc(`users/${req.user.uid}`)
+  const settings = user?.aiSettings || {}
+  res.json({
+    settings: {
+      hasApiKey: Boolean(settings.apiKey),
+      model: settings.model || 'gpt-4.1-mini',
+      useForScribing: Boolean(settings.useForScribing),
+    },
+  })
+})
+
+// PUT /api/user/ai-settings — persists the OpenAI key in the local GrowCare DB.
+// The key is deliberately write-only: no API can read it back to the webview.
+router.put('/ai-settings', async (req, res) => {
+  const { uid } = req.user
+  const existing = await store.getDoc(`users/${uid}`)
+  const previous = existing?.aiSettings || {}
+  const body = req.body || {}
+  const apiKey = body.clearApiKey
+    ? ''
+    : body.apiKey === undefined
+      ? String(previous.apiKey || '')
+      : String(body.apiKey || '').trim()
+  const model = String(body.model || previous.model || 'gpt-4.1-mini').trim() || 'gpt-4.1-mini'
+  const useForScribing = body.useForScribing === undefined
+    ? Boolean(previous.useForScribing)
+    : Boolean(body.useForScribing)
+
+  await store.setDoc(`users/${uid}`, {
+    aiSettings: { apiKey, model, useForScribing, updatedAt: Date.now() },
+  })
+  res.json({ settings: { hasApiKey: Boolean(apiKey), model, useForScribing } })
+})
+
 // GET /api/user/me — current profile (creates the record on first call).
 router.get('/me', async (req, res) => {
   const { uid, email, name, picture } = req.user

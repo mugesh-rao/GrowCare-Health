@@ -7,7 +7,12 @@ const wa = require('./services/whatsappService')
 const network = require('./services/network')
 
 const app = express()
-const PORT = Number(process.env.PORT || 5000)
+// 2238 is GrowCare's canonical default port everywhere (Tauri's Rust shell,
+// this server, and the browser-dev client fallback all agree on it), so a
+// bare `node src/index.js` with no .env override lines up with the client
+// out of the box. `PORT`/`HOST` env vars (e.g. from Tauri, which persists a
+// user-chosen port — see src-tauri/src/lib.rs) still take priority.
+const PORT = Number(process.env.PORT || 2238)
 const HOST = process.env.HOST || '127.0.0.1'
 
 // The webview's own origin differs by OS (`tauri://localhost` on macOS/Linux,
