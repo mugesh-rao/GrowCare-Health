@@ -1,6 +1,8 @@
 const express = require('express')
-const store = require('../services/store')
-const ai = require('../services/aiService')
+const store = require('../services/core/store')
+const ai = require('../services/ai/service')
+const clinicalIntelligence = require('../services/clinical/intelligence')
+const clinicalFiles = require('../services/clinical/files')
 
 const router = express.Router()
 
@@ -202,10 +204,17 @@ router.post('/patients/:patientId/artifacts', async (req, res) => {
   const body = req.body || {}
   const id = store.genId()
   const sourceText = String(body.sourceText || '').slice(0, 200000)
+  let localFile
+  try {
+    localFile = await clinicalFiles.storeBase64({ patientId: req.params.patientId, fileName: body.fileName, fileData: body.fileData })
+  } catch (error) {
+    return res.status(400).json({ message: error.message })
+  }
   const artifact = {
     fileName: String(body.fileName || 'Clinical note').slice(0, 180), kind: body.kind || 'Clinical document',
-    mimeType: body.mimeType || 'text/plain', sourceText, fileData: String(body.fileData || '').slice(0, 14000000),
-    createdAt: now(), extractionStatus: 'completed',
+    mimeType: body.mimeType || 'text/plain', sourceText,
+    ...(localFile || {}),
+    createdAt: now(), extractionStatus: 'not_processed',
   }
   await store.setDoc(childPath(uid, req.params.patientId, 'artifacts', id), artifact, false)
   const extracted = extractObservations(sourceText)
@@ -218,6 +227,69 @@ router.post('/patients/:patientId/artifacts', async (req, res) => {
   }
   const alerts = await createAlerts(uid, req.params.patientId, observations, artifact.fileName)
   res.status(201).json({ artifact: { id, ...artifact }, observations, alerts, patient: await getPatientBundle(uid, req.params.patientId) })
+})
+
+router.get('/patients/:patientId/intelligence', async (req, res) => {
+  const uid = req.user.uid
+  const patient = await store.getDoc(patientPath(uid, req.params.patientId))
+  if (!patient) return res.status(404).json({ message: 'Patient not found.' })
+  const [artifacts, extractions, observations, context] = await Promise.all([
+    store.listDocs(`${patientPath(uid, patient.id)}/artifacts`),
+    store.listDocs(`${patientPath(uid, patient.id)}/clinicalExtractions`),
+    store.listDocs(`${patientPath(uid, patient.id)}/observations`),
+    store.getDoc(childPath(uid, patient.id, 'clinicalContext', 'current')),
+  ])
+  res.json({ artifacts, extractions: extractions.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)), observations, context })
+})
+
+router.post('/patients/:patientId/artifacts/:artifactId/process', async (req, res) => {
+  const uid = req.user.uid
+  if (!req.body?.consentConfirmed) return res.status(400).json({ message: 'Confirm that this source may be sent to OpenAI before processing.' })
+  const patient = await store.getDoc(patientPath(uid, req.params.patientId))
+  const artifactPath = childPath(uid, req.params.patientId, 'artifacts', req.params.artifactId)
+  const artifact = await store.getDoc(artifactPath)
+  if (!patient || !artifact) return res.status(404).json({ message: 'Patient or local source not found.' })
+  await store.setDoc(artifactPath, { extractionStatus: 'processing', processingError: '', updatedAt: now() })
+  try {
+    const result = await clinicalIntelligence.processArtifact({ uid, patient: { id: patient.id, ...patient }, artifact: { id: artifact.id, ...artifact } })
+    const extractionId = store.genId()
+    const extraction = { artifactId: artifact.id, data: result.extracted, sourceMode: result.sourceMode, createdAt: now(), status: 'ready', clinicianReviewStatus: 'pending' }
+    await store.setDoc(childPath(uid, patient.id, 'clinicalExtractions', extractionId), extraction, false)
+    const observations = []
+    for (const item of result.extracted.observations || []) {
+      if (!String(item.name || '').trim() || !String(item.value || '').trim()) continue
+      const observationId = store.genId()
+      const observation = { name: item.name, value: item.value, unit: item.unit, status: String(item.status || 'normal').toLowerCase(), referenceRange: item.referenceRange, observedAt: now(), sourceArtifactId: artifact.id, sourceExtractionId: extractionId, source: artifact.fileName }
+      await store.setDoc(childPath(uid, patient.id, 'observations', observationId), observation, false)
+      observations.push({ id: observationId, ...observation })
+    }
+    const alerts = await createAlerts(uid, patient.id, observations, artifact.fileName)
+    await store.setDoc(artifactPath, { extractionStatus: 'ready', extractionId, processedAt: now(), processingDisclosure: 'This source was sent to OpenAI after local confirmation for draft extraction.' })
+    res.json({ extraction: { id: extractionId, ...extraction }, observations, alerts })
+  } catch (error) {
+    await store.setDoc(artifactPath, { extractionStatus: 'failed', processingError: error.message, updatedAt: now() })
+    res.status(422).json({ message: error.message || 'Clinical extraction failed.' })
+  }
+})
+
+router.post('/patients/:patientId/context/refresh', async (req, res) => {
+  const uid = req.user.uid
+  if (!req.body?.consentConfirmed) return res.status(400).json({ message: 'Confirm that the selected patient context may be sent to OpenAI before refreshing it.' })
+  const patient = await store.getDoc(patientPath(uid, req.params.patientId))
+  if (!patient) return res.status(404).json({ message: 'Patient not found.' })
+  try {
+    const [extractions, observations, encounters] = await Promise.all([
+      store.listDocs(`${patientPath(uid, patient.id)}/clinicalExtractions`),
+      store.listDocs(`${patientPath(uid, patient.id)}/observations`),
+      store.listDocs(`${patientPath(uid, patient.id)}/encounters`),
+    ])
+    const result = await clinicalIntelligence.buildContext({ uid, patient: { id: patient.id, ...patient }, extractions, observations, encounters })
+    const context = { ...result.data, generatedAt: now(), generatedWith: result.generatedWith, sourceExtractionIds: extractions.map((item) => item.id), clinicianReviewStatus: 'pending' }
+    await store.setDoc(childPath(uid, patient.id, 'clinicalContext', 'current'), context, false)
+    res.json({ context: { id: 'current', ...context } })
+  } catch (error) {
+    res.status(422).json({ message: error.message || 'Could not refresh clinical context.' })
+  }
 })
 
 router.post('/patients/:patientId/scribe/start', async (req, res) => {
@@ -280,13 +352,25 @@ router.post('/patients/:patientId/scribe/:sessionId/approve', async (req, res) =
 })
 
 router.post('/patients/:patientId/chat', async (req, res) => {
-  const patient = await getPatientBundle(req.user.uid, req.params.patientId)
+  const uid = req.user.uid
+  const patient = await getPatientBundle(uid, req.params.patientId)
   if (!patient) return res.status(404).json({ message: 'Patient not found.' })
   const question = String(req.body?.question || '').trim()
+  if (!question) return res.status(400).json({ message: 'Enter a question about the patient record.' })
+  const [extractions, context] = await Promise.all([
+    store.listDocs(`${patientPath(uid, patient.id)}/clinicalExtractions`),
+    store.getDoc(childPath(uid, patient.id, 'clinicalContext', 'current')),
+  ])
   const sources = patient.chart.artifacts.map((artifact) => artifact.fileName)
   const metrics = patient.chart.observations.slice(-5).map((item) => `${item.name} ${item.value} ${item.unit || ''}`).join(', ')
-  const answer = `Record summary: ${patient.briefingCard.aiSummary} ${metrics ? `Recent extracted observations: ${metrics}.` : ''} ${sources.length ? `Sources: ${sources.join(', ')}.` : ''} This is contextual record support only; verify against original documents and clinical judgment.`
-  res.json({ answer, question })
+  try {
+    const answer = await clinicalIntelligence.askRecord({ uid, patient, context, sources: extractions.map((item) => ({ artifactId: item.artifactId, ...item.data })), question })
+    if (answer) return res.json({ answer, question, generatedWith: 'OpenAI grounded record chat' })
+  } catch (error) {
+    console.error('[clinical chat]', error.message)
+  }
+  const answer = `Record summary: ${context?.summary || patient.briefingCard.aiSummary} ${metrics ? `Recent extracted observations: ${metrics}.` : ''} ${sources.length ? `Sources: ${sources.join(', ')}.` : ''} This is contextual record support only; verify against original documents and clinical judgment.`
+  res.json({ answer, question, generatedWith: 'local record summary' })
 })
 
 router.get('/patients/:patientId/fhir', async (req, res) => {

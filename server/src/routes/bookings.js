@@ -1,5 +1,5 @@
 const express = require('express')
-const store = require('../services/store')
+const store = require('../services/core/store')
 
 const router = express.Router()
 

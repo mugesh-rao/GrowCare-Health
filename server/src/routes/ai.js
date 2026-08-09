@@ -1,6 +1,6 @@
 const express = require('express')
 const { publicProviders } = require('../config/ai')
-const ai = require('../services/aiService')
+const ai = require('../services/ai/service')
 
 const router = express.Router()
 

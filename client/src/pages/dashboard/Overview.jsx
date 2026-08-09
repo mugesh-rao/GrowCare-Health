@@ -19,6 +19,7 @@ import {
   Workflow,
 } from 'lucide-react'
 import { Badge, Button, Spinner } from '../../components/atoms'
+import clinicDashboardHero from '../../assets/clinic-dashboard-hero.png'
 import { useProfile } from '../../context/ProfileContext'
 import useHeaderActions from '../../hooks/useHeaderActions'
 import useRealtime from '../../hooks/useRealtime'
@@ -203,8 +204,10 @@ export default function Overview() {
 
   return (
     <div className="mx-auto max-w-[1540px] space-y-6 pb-5">
-      <section className="overflow-hidden rounded-[28px] border border-[#284a48] bg-night-900 text-white">
-        <div className="grid gap-8 px-6 py-7 sm:px-8 lg:grid-cols-[minmax(0,1.25fr)_minmax(300px,0.75fr)] lg:px-10 lg:py-9">
+      <section className="relative overflow-hidden rounded-[28px] border border-[#284a48] bg-night-900 text-white">
+        <img src={clinicDashboardHero} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full scale-[1.02] object-cover opacity-90" />
+        <div className="absolute inset-0 bg-gradient-to-r from-night-900 via-night-900/85 to-night-900/45" />
+        <div className="relative z-10 grid gap-8 px-6 py-7 sm:px-8 lg:grid-cols-[minmax(0,1.25fr)_minmax(300px,0.75fr)] lg:px-10 lg:py-9">
           <div>
             <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-brand-200">
               <span className="inline-flex h-2 w-2 rounded-full bg-brand-300" /> Local clinical workspace
@@ -217,7 +220,7 @@ export default function Overview() {
               <Button variant="secondary" onClick={() => navigate('/dashboard/bookings')} leftIcon={<CalendarPlus className="h-4 w-4" />}>Add appointment</Button>
             </div>
           </div>
-          <div className="grid content-start gap-3 rounded-2xl border border-white/10 bg-white/[0.05] p-4 sm:grid-cols-2">
+          <div className="grid content-start gap-3 rounded-2xl border border-white/15 bg-night-900/55 p-4 backdrop-blur-[2px] sm:grid-cols-2">
             <div className="rounded-xl bg-white/[0.06] p-4"><p className="text-xs font-medium text-[#b8c9c6]">Today&apos;s appointments</p><p className="mt-2 text-3xl font-semibold tracking-[-0.05em]">{model.todayBookings.length}</p><p className="mt-1 text-xs text-brand-200">{model.upcoming.length ? `Next at ${formatSlot(model.upcoming[0])}` : 'No upcoming bookings'}</p></div>
             <div className="rounded-xl bg-white/[0.06] p-4"><p className="text-xs font-medium text-[#b8c9c6]">Care items to review</p><p className="mt-2 text-3xl font-semibold tracking-[-0.05em]">{model.flagged.length}</p><p className="mt-1 text-xs text-brand-200">Patient alerts and high-risk records</p></div>
             <div className="col-span-full flex items-center gap-3 rounded-xl border border-white/10 px-3.5 py-3 text-sm"><ShieldCheck className="h-5 w-5 shrink-0 text-brand-300" /><span className="text-[#e1eae8]">Records are in this local GrowCare workspace.</span></div>

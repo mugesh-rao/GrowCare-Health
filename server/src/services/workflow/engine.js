@@ -11,9 +11,9 @@
  * Execution walks edges from the trigger node, producing reply strings that
  * the caller sends back over WhatsApp.
  */
-const store = require('./store')
-const ai = require('./aiService')
-const { sanitizeSendPayload } = require('./sendPayload')
+const store = require('../core/store')
+const ai = require('../ai/service')
+const { sanitizeSendPayload } = require('../whatsapp/sendPayload')
 
 const defaultRouterRoutes = [
   { id: 'route_1', label: 'Route 1', description: '' },

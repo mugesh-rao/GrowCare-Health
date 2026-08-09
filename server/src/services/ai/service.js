@@ -1,5 +1,5 @@
-const { PROVIDERS, resolveBaseUrl } = require('../config/ai')
-const store = require('./store')
+const { PROVIDERS, resolveBaseUrl } = require('../../config/ai')
+const store = require('../core/store')
 
 async function localAiSettings(uid) {
   const user = await store.getDoc(`users/${uid || 'local-owner'}`)

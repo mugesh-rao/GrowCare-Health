@@ -1,5 +1,5 @@
 const express = require('express')
-const network = require('../services/network')
+const network = require('../services/core/network')
 
 const router = express.Router()
 

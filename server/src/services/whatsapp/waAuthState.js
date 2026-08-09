@@ -9,7 +9,7 @@
  * Values are serialized with Baileys' BufferJSON so Buffers survive JSON
  * storage in either backend.
  */
-const store = require('./store')
+const store = require('../core/store')
 
 async function useStoreAuthState(baileys, uid, sessionId) {
   const { initAuthCreds, BufferJSON, proto } = baileys

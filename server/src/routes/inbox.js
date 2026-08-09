@@ -1,6 +1,6 @@
 const express = require('express')
-const store = require('../services/store')
-const wa = require('../services/whatsappService')
+const store = require('../services/core/store')
+const wa = require('../services/whatsapp/whatsappService')
 
 const router = express.Router()
 

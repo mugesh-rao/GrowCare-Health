@@ -26,7 +26,7 @@ This app does **not** use Tauri's official `externalBin` sidecar recipe (a singl
 
 ## 2. Local storage
 
-**Structured data — implemented.** `server/src/services/store.js` uses Node's **built-in `node:sqlite`** (`DatabaseSync`) — zero extra dependency, no native module to rebuild per Electron/Tauri target. It keeps a single `documents` table (`path`, `collection_path`, `id`, `data` JSON) that mirrors the old Firestore-style `collection/doc` API the routes were written against, so the whole app moved off Firebase without touching route code. DB file: `${APP_DATA_DIR}/growcare.sqlite3`, `PRAGMA journal_mode = WAL`.
+**Structured data — implemented.** `server/src/services/core/store.js` uses Node's **built-in `node:sqlite`** (`DatabaseSync`) — zero extra dependency, no native module to rebuild per Electron/Tauri target. It keeps a single `documents` table (`path`, `collection_path`, `id`, `data` JSON) that mirrors the old Firestore-style `collection/doc` API the routes were written against, so the whole app moved off Firebase without touching route code. DB file: `${APP_DATA_DIR}/growcare.sqlite3`, `PRAGMA journal_mode = WAL`.
 
 > Stability: unflagged since Node 22.13/23.4, Release Candidate as of Node 24. Fine here — single local writer, no distributed access.
 
@@ -62,3 +62,17 @@ Goal: one PC creates a Wi-Fi hotspot (or later, a real router/AP), other clinic 
 | Local DB | `node:sqlite` (built-in) | JSON-document store, WAL mode |
 | File storage | Filesystem under `APP_DATA_DIR` (recommended, not yet built) | keyed by sha256, metadata in SQLite |
 | LAN pairing | mDNS/UDP broadcast + app-level accept flow (planned) | OS hotspot APIs unreliable, so this stays app-layer |
+
+## Service-domain layout
+
+`server/src/services/` is now organized by product capability:
+
+```text
+core/       SQLite store, realtime hub, local LAN pairing
+whatsapp/   Baileys, QR/auth, payloads, templates, safety, scheduling
+workflow/   Flow execution engine
+clinical/   Local file vault and clinical intelligence pipeline
+ai/         Shared OpenAI key/model resolution and general AI helpers
+```
+
+Clinical sources are saved as local files under `${APP_DATA_DIR}/documents/<patientId>/` and their metadata/extracted JSON is saved in SQLite. `clinical/intelligence.js` owns source processing, structured extraction, patient context, and grounded record chat. Future clinical agents must be added under `clinical/agents/` by responsibility, leaving routes as small HTTP orchestrators.

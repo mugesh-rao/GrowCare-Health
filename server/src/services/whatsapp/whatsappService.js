@@ -9,11 +9,11 @@
  *
  * Baileys is ESM-only, so it's loaded via dynamic import.
  */
-const store = require('./store')
-const realtime = require('./realtime')
+const store = require('../core/store')
+const realtime = require('../core/realtime')
 const antiBan = require('./antiBan')
 const { useStoreAuthState } = require('./waAuthState')
-const workflowEngine = require('./workflowEngine')
+const workflowEngine = require('../workflow/engine')
 const {
   buildHydratedButtons,
   buildProductPayload,

@@ -7,7 +7,7 @@
  * A single interval worker polls for due messages across all users and sends
  * them through whatsappService (which applies anti-ban pacing + caps).
  */
-const store = require('./store')
+const store = require('../core/store')
 
 async function schedule(uid, { sessionId, to, payload, runAt }) {
   const id = store.genId()

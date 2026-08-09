@@ -14,7 +14,7 @@
  * The package is ESM, so it is loaded via dynamic import. If it ever fails to
  * load, every helper degrades to "allow" so sending is never blocked by a bug.
  */
-const store = require('./store')
+const store = require('../core/store')
 
 const DEFAULTS = {
   enabled: true,

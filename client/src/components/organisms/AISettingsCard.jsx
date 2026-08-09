@@ -24,6 +24,7 @@ export default function AISettingsCard() {
   const [apiKey, setApiKey] = useState('')
   const [model, setModel] = useState('gpt-5.6-luna')
   const [useForScribing, setUseForScribing] = useState(false)
+  const [useForClinicalAI, setUseForClinicalAI] = useState(false)
   const [showKey, setShowKey] = useState(false)
   const [saving, setSaving] = useState(false)
   const [testing, setTesting] = useState(false)
@@ -36,6 +37,7 @@ export default function AISettingsCard() {
         setSettings(next)
         setModel(next.model || 'gpt-5.6-luna')
         setUseForScribing(Boolean(next.useForScribing))
+        setUseForClinicalAI(Boolean(next.useForClinicalAI))
       })
       .catch((requestError) => setError(requestError.message || 'Could not load local AI settings.'))
   }, [])
@@ -49,6 +51,7 @@ export default function AISettingsCard() {
         ...(apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
         model,
         useForScribing,
+        useForClinicalAI,
       })
       setSettings(next)
       setApiKey('')
@@ -79,10 +82,11 @@ export default function AISettingsCard() {
     setSaving(true)
     setError('')
     try {
-      const next = await userService.updateAiSettings({ clearApiKey: true, model, useForScribing: false })
+      const next = await userService.updateAiSettings({ clearApiKey: true, model, useForScribing: false, useForClinicalAI: false })
       setSettings(next)
       setApiKey('')
       setUseForScribing(false)
+      setUseForClinicalAI(false)
       setMessage('The local OpenAI key was removed.')
     } catch (requestError) {
       setError(requestError.message || 'Could not remove the local OpenAI key.')
@@ -116,6 +120,10 @@ export default function AISettingsCard() {
           <div className="flex items-start justify-between gap-4 rounded-xl border border-line bg-canvas px-4 py-3">
             <div><p className="text-sm font-medium text-ink">Use for scribe drafts</p><p className="mt-0.5 text-xs text-muted">When enabled, a consented transcript is sent to OpenAI to prepare a clinician-review draft. If it fails or is disabled, GrowCare uses its local draft instead.</p></div>
             <Toggle checked={useForScribing} onChange={setUseForScribing} />
+          </div>
+          <div className="flex items-start justify-between gap-4 rounded-xl border border-line bg-canvas px-4 py-3">
+            <div><p className="text-sm font-medium text-ink">Use for clinical intelligence</p><p className="mt-0.5 text-xs text-muted">When you explicitly process a source or refresh patient context, the selected clinical data is sent to OpenAI for a clinician-review draft. Files and extracted records remain local in GrowCare.</p></div>
+            <Toggle checked={useForClinicalAI} onChange={setUseForClinicalAI} />
           </div>
           {error && <p role="alert" className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
           {message && <p className="rounded-xl bg-brand-50 px-3 py-2 text-sm text-brand-800">{message}</p>}

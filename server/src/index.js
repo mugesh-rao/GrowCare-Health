@@ -2,9 +2,9 @@ require('dotenv').config()
 const http = require('http')
 const express = require('express')
 
-const realtime = require('./services/realtime')
-const wa = require('./services/whatsappService')
-const network = require('./services/network')
+const realtime = require('./services/core/realtime')
+const wa = require('./services/whatsapp/whatsappService')
+const network = require('./services/core/network')
 
 const app = express()
 // 2238 is GrowCare's canonical default port everywhere (Tauri's Rust shell,
@@ -70,7 +70,7 @@ realtime.attach(server)
 
 server.listen(PORT, HOST, async () => {
   console.log(`GrowCare local server running on http://${HOST}:${PORT}`)
-  require('./services/scheduler').start()
+  require('./services/whatsapp/scheduler').start()
   if (process.env.SKIP_WA_BOOT !== '1') await wa.bootReconnect()
   await network.start()
 })

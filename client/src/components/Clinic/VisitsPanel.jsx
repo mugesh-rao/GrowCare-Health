@@ -14,11 +14,15 @@ export default function VisitsPanel({ patient, collapsed, onToggle, onUpdated })
     const file = event.target.files?.[0]
     event.target.value = ''
     if (!file) return
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError('Choose a file smaller than 10 MB. Larger local-file streaming will be added before clinic rollout.')
+      return
+    }
     setUploading(true)
     setUploadError('')
     try {
       const isText = file.type.startsWith('text/') || /\.(csv|txt|json)$/i.test(file.name)
-      const sourceText = isText ? await file.text() : `Uploaded ${file.name}. OCR is not configured for this local source; add or paste report text to extract values.`
+      const sourceText = isText ? await file.text() : ''
       const fileData = await new Promise((resolve, reject) => {
         const reader = new FileReader()
         reader.onload = () => resolve(reader.result)
@@ -142,7 +146,7 @@ export default function VisitsPanel({ patient, collapsed, onToggle, onUpdated })
           <label className="flex w-full cursor-pointer items-center gap-2 rounded-2xl border border-dashed border-line px-3 py-2.5 text-xs text-muted transition hover:bg-brand-50 hover:text-brand-700">
             <Plus className="h-3.5 w-3.5" />
             {uploading ? 'Saving local source…' : 'Add files'}
-            <input type="file" className="hidden" disabled={uploading} onChange={addFile} />
+            <input type="file" accept=".pdf,.txt,.csv,.json,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.webp,.mp3,.mp4,.m4a,.wav,.webm,application/pdf,text/*,image/*,audio/*" className="hidden" disabled={uploading} onChange={addFile} />
           </label>
           {uploadError && <p className="px-2 text-xs text-red-600">{uploadError}</p>}
           {patient.documents.map((doc, i) => (

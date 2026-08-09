@@ -77,7 +77,7 @@ export default function PatientDetailPage() {
         onToggle={() => setLeftCollapsed((v) => !v)}
         onUpdated={refreshPatient}
       />
-      <PatientChatWorkspace patient={patient} />
+      <PatientChatWorkspace patient={patient} onUpdated={refreshPatient} />
       <PatientSummarySidebar
         patient={patient}
         collapsed={rightCollapsed}

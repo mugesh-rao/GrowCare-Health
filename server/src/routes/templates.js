@@ -1,15 +1,15 @@
 const express = require('express')
-const store = require('../services/store')
+const store = require('../services/core/store')
 const {
   validateCarousel,
   validateHydratedTemplate,
   validateProduct,
-} = require('../services/advancedMessages')
-const { validateButtons } = require('../services/buttons')
-const { validateExternalAdReply } = require('../services/externalAdReply')
-const { validateEvent } = require('../services/events')
-const { validateList } = require('../services/lists')
-const { sanitizeSendPayload } = require('../services/sendPayload')
+} = require('../services/whatsapp/advancedMessages')
+const { validateButtons } = require('../services/whatsapp/buttons')
+const { validateExternalAdReply } = require('../services/whatsapp/externalAdReply')
+const { validateEvent } = require('../services/whatsapp/events')
+const { validateList } = require('../services/whatsapp/lists')
+const { sanitizeSendPayload } = require('../services/whatsapp/sendPayload')
 
 const router = express.Router()
 

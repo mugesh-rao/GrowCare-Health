@@ -11,15 +11,18 @@ import {
   Sparkles,
   TrendingUp,
   TriangleAlert,
+  BrainCircuit,
 } from 'lucide-react'
 import DoctorBriefingCard from './DoctorBriefingCard'
 import PatientBadge from './PatientBadge'
 import { reportCardsByPatient } from '../../lib/clinicReportCards'
+import ClinicalIntelligencePanel from './ClinicalIntelligencePanel'
 
 const tabs = [
   { id: 'chat',        label: 'Chat',       Icon: MessageSquareMore },
   { id: 'visits',      label: 'Visit-wise', Icon: CalendarClock },
   { id: 'progression', label: 'Progression',Icon: TrendingUp },
+  { id: 'intelligence', label: 'Intelligence', Icon: BrainCircuit },
 ]
 
 const PROMPTS = [
@@ -259,7 +262,7 @@ function ReportCard({ card }) {
 
 /* ── Main component ──────────────────────────────────────────────── */
 
-export default function PatientChatWorkspace({ patient }) {
+export default function PatientChatWorkspace({ patient, onUpdated }) {
   const [briefDismissed, setBriefDismissed] = useState(false)
   const [activeTab, setActiveTab] = useState('chat')
 
@@ -292,6 +295,7 @@ export default function PatientChatWorkspace({ patient }) {
         {activeTab === 'chat'        && <ChatView patient={patient} />}
         {activeTab === 'visits'      && <VisitWiseView patient={patient} />}
         {activeTab === 'progression' && <ProgressionCanvas patient={patient} />}
+        {activeTab === 'intelligence' && <ClinicalIntelligencePanel patient={patient} onUpdated={onUpdated} />}
       </div>
     </div>
   )

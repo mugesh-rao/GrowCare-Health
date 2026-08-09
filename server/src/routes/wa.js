@@ -1,7 +1,7 @@
 const express = require('express')
-const store = require('../services/store')
-const wa = require('../services/whatsappService')
-const { sanitizeSendPayload } = require('../services/sendPayload')
+const store = require('../services/core/store')
+const wa = require('../services/whatsapp/whatsappService')
+const { sanitizeSendPayload } = require('../services/whatsapp/sendPayload')
 
 const router = express.Router()
 

@@ -1,6 +1,6 @@
 const express = require('express')
-const store = require('../services/store')
-const antiBan = require('../services/antiBan')
+const store = require('../services/core/store')
+const antiBan = require('../services/whatsapp/antiBan')
 
 const router = express.Router()
 
@@ -38,6 +38,7 @@ router.get('/ai-settings', async (req, res) => {
       hasApiKey: Boolean(settings.apiKey),
       model: settings.model || 'gpt-5.6-luna',
       useForScribing: Boolean(settings.useForScribing),
+      useForClinicalAI: Boolean(settings.useForClinicalAI),
     },
   })
 })
@@ -58,11 +59,14 @@ router.put('/ai-settings', async (req, res) => {
   const useForScribing = body.useForScribing === undefined
     ? Boolean(previous.useForScribing)
     : Boolean(body.useForScribing)
+  const useForClinicalAI = body.useForClinicalAI === undefined
+    ? Boolean(previous.useForClinicalAI)
+    : Boolean(body.useForClinicalAI)
 
   await store.setDoc(`users/${uid}`, {
-    aiSettings: { apiKey, model, useForScribing, updatedAt: Date.now() },
+    aiSettings: { apiKey, model, useForScribing, useForClinicalAI, updatedAt: Date.now() },
   })
-  res.json({ settings: { hasApiKey: Boolean(apiKey), model, useForScribing } })
+  res.json({ settings: { hasApiKey: Boolean(apiKey), model, useForScribing, useForClinicalAI } })
 })
 
 // GET /api/user/me — current profile (creates the record on first call).
