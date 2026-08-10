@@ -64,6 +64,13 @@ body {
   background: var(--color-canvas);
 }
 
+@media print {
+  body * { visibility: hidden !important; }
+  .patient-care-print, .patient-care-print * { visibility: visible !important; }
+  .patient-care-print { position: absolute; inset: 0; width: 100%; background: white; }
+  .patient-care-print .print\:hidden { display: none !important; }
+}
+
 /* Most existing screens use Tailwind's white utility. Keep those panels in
    the same warm ivory family as the supplied desktop references. */
 @layer utilities {

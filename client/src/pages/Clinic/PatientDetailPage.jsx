@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { CalendarClock, ChevronLeft, Mic } from 'lucide-react'
+import { CalendarClock, ChevronLeft, FileHeart, Mic } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Button, Card } from '../../components/atoms'
 import PatientChatWorkspace from '../../components/Clinic/PatientChatWorkspace'
@@ -48,6 +48,7 @@ export default function PatientDetailPage() {
         All patients
       </Button>
       <Button variant="secondary" leftIcon={<CalendarClock className="h-4 w-4" />}>Schedule follow-up</Button>
+      <Button variant="secondary" leftIcon={<FileHeart className="h-4 w-4" />} onClick={() => navigate(`/dashboard/patients/${patientId}/care`)}>Patient care</Button>
       <Button leftIcon={<Mic className="h-4 w-4" />} onClick={startScribe}>Start visit</Button>
     </div>,
     [patient],

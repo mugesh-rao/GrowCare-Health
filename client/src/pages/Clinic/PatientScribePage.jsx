@@ -2,12 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import {
   ArrowLeft,
   Check,
-  CheckCircle2,
   CirclePause,
   ClipboardCheck,
   FileText,
+  FileHeart,
   FolderOpen,
-  History,
   Mic,
   PanelRightClose,
   PanelRightOpen,
@@ -230,7 +229,7 @@ export default function PatientScribePage() {
       await clinicalApi.approveScribe(patientId, session.id, { note: draft, summary: buildPatientSummary(draft, patient), language })
       window.dispatchEvent(new CustomEvent('growcare:patient-updated', { detail: { patientId } }))
       setStatus('approved')
-      setNotice('The approved consultation note is now saved in this patient’s local timeline.')
+      setNotice('The visit is saved locally and a patient-friendly after-visit draft is ready for clinician review.')
     } catch (requestError) {
       setNotice(requestError.message)
       setStatus('review')
@@ -269,7 +268,7 @@ export default function PatientScribePage() {
           </button>
           {status === 'idle' && <Button leftIcon={<Play className="h-4 w-4" />} onClick={() => (consent ? startConsultation() : setActiveTab('context'))}>Start consultation</Button>}
           {isLive && <Button leftIcon={<Square className="h-4 w-4" />} onClick={finishConsultation}>Finish and create note</Button>}
-          {status === 'approved' && <Button leftIcon={<History className="h-4 w-4" />} onClick={() => navigate(`/dashboard/patients/${patientId}`)}>View patient record</Button>}
+          {status === 'approved' && <Button leftIcon={<FileHeart className="h-4 w-4" />} onClick={() => navigate(`/dashboard/patients/${patientId}/care`)}>Review patient plan</Button>}
         </div>
       </header>
 
@@ -315,7 +314,7 @@ export default function PatientScribePage() {
         {activeTab === 'note' && (
           <div className="mx-auto max-w-4xl">
             {!draft && <div className="flex flex-col items-center rounded-2xl border border-dashed border-line bg-canvas px-8 py-16 text-center"><ClipboardCheck className="h-9 w-9 text-brand-600" /><p className="mt-4 text-lg font-semibold text-ink">Your draft will appear here</p><p className="mt-2 max-w-md text-sm text-muted">Finish the consultation to create a structured draft from the saved transcript.</p></div>}
-            {draft && <div className="space-y-4"><div className="flex items-center gap-3 rounded-2xl border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-900"><Sparkles className="h-4 w-4 shrink-0" />Review each field before saving this consultation to {patient.name}'s timeline.</div><article className="rounded-2xl border border-line bg-white px-7 py-8 sm:px-10"><header className="border-b border-line pb-6"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-700">Clinical consultation note</p><h2 className="mt-2 text-3xl font-bold tracking-tight text-ink">{patient.name}</h2><p className="mt-2 text-sm text-muted">{patient.mrn} · {patient.specialty} · Prepared from local consultation transcript</p></header><div className="divide-y divide-line">{[['Chief complaint', 'chiefComplaint'], ['Examination', 'examination'], ['Assessment / diagnosis', 'diagnosis'], ['Follow-up plan', 'followUp']].map(([label, key]) => <section key={key} className="py-6"><h3 className="text-sm font-bold text-ink">{label}</h3><textarea rows={3} value={draft[key] || ''} onChange={(event) => setDraft((current) => ({ ...current, [key]: event.target.value }))} disabled={status === 'approving' || status === 'approved'} className="mt-2 w-full resize-y border-0 bg-transparent p-0 text-sm leading-7 text-ink outline-none placeholder:text-muted focus:ring-0 disabled:text-muted" /></section>)}</div></article><div className="flex flex-wrap justify-end gap-3 pt-2">{status === 'approved' ? <Button leftIcon={<CheckCircle2 className="h-4 w-4" />} onClick={() => navigate(`/dashboard/patients/${patientId}`)}>View saved patient record</Button> : <Button disabled={status === 'approving'} leftIcon={<Check className="h-4 w-4" />} onClick={approveNote}>{status === 'approving' ? 'Saving to patient record' : 'Approve and save visit note'}</Button>}</div></div>}
+            {draft && <div className="space-y-4"><div className="flex items-center gap-3 rounded-2xl border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-900"><Sparkles className="h-4 w-4 shrink-0" />Review each field before saving this consultation to {patient.name}'s timeline.</div><article className="rounded-2xl border border-line bg-white px-7 py-8 sm:px-10"><header className="border-b border-line pb-6"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-700">Clinical consultation note</p><h2 className="mt-2 text-3xl font-bold tracking-tight text-ink">{patient.name}</h2><p className="mt-2 text-sm text-muted">{patient.mrn} · {patient.specialty} · Prepared from local consultation transcript</p></header><div className="divide-y divide-line">{[['Chief complaint', 'chiefComplaint'], ['Examination', 'examination'], ['Assessment / diagnosis', 'diagnosis'], ['Follow-up plan', 'followUp']].map(([label, key]) => <section key={key} className="py-6"><h3 className="text-sm font-bold text-ink">{label}</h3><textarea rows={3} value={draft[key] || ''} onChange={(event) => setDraft((current) => ({ ...current, [key]: event.target.value }))} disabled={status === 'approving' || status === 'approved'} className="mt-2 w-full resize-y border-0 bg-transparent p-0 text-sm leading-7 text-ink outline-none placeholder:text-muted focus:ring-0 disabled:text-muted" /></section>)}</div></article><div className="flex flex-wrap justify-end gap-3 pt-2">{status === 'approved' ? <Button leftIcon={<FileHeart className="h-4 w-4" />} onClick={() => navigate(`/dashboard/patients/${patientId}/care`)}>Review after-visit plan</Button> : <Button disabled={status === 'approving'} leftIcon={<Check className="h-4 w-4" />} onClick={approveNote}>{status === 'approving' ? 'Saving to patient record' : 'Approve and save visit note'}</Button>}</div></div>}
           </div>
         )}
       </div>

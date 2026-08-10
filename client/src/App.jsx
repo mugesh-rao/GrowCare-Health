@@ -5,6 +5,7 @@ import Onboarding from './pages/Onboarding'
 import NewPatientPage from './pages/Clinic/NewPatientPage'
 import PatientDetailPage from './pages/Clinic/PatientDetailPage'
 import PatientScribePage from './pages/Clinic/PatientScribePage'
+import PatientCarePage from './pages/Clinic/PatientCarePage'
 import PatientsPage from './pages/Clinic/PatientsPage'
 import DashboardHub from './pages/dashboard/DashboardHub'
 import WhatsAppHub from './pages/dashboard/WhatsAppHub'
@@ -27,6 +28,7 @@ export default function App() {
             <Route path="patients" element={<PatientsPage />} />
             <Route path="patients/new" element={<NewPatientPage />} />
             <Route path="patients/:patientId/scribe" element={<PatientScribePage />} />
+            <Route path="patients/:patientId/care" element={<PatientCarePage />} />
             <Route path="patients/:patientId" element={<PatientDetailPage />} />
             <Route path="bookings" element={<Bookings />} />
             <Route path="workflows" element={<Workflows />} />

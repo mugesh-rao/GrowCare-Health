@@ -1,15 +1,18 @@
-import { useState } from 'react'
-import { CalendarPlus } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { CalendarPlus, UserRoundSearch } from 'lucide-react'
 import { Button, Input, Label, Modal } from '../atoms'
 import bookingService from '../../services/bookingService'
+import { clinicalApi } from '../../services/clinicalApi'
 
 const initialForm = {
   name: '',
+  patientId: '',
   phone: '',
   service: 'Consultation',
   slotIso: '',
   durationMinutes: '30',
   notes: '',
+  doctor: '',
 }
 
 /** Reusable appointment creation dialog used wherever a clinic schedule is shown. */
@@ -17,8 +20,24 @@ export default function AppointmentFormModal({ open, onClose, onCreated }) {
   const [form, setForm] = useState(initialForm)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  const [patients, setPatients] = useState([])
+
+  useEffect(() => {
+    if (!open) return
+    clinicalApi.listPatients().then(setPatients).catch(() => setPatients([]))
+  }, [open])
 
   const update = (field) => (event) => setForm((current) => ({ ...current, [field]: event.target.value }))
+
+  const selectPatient = (event) => {
+    const patientId = event.target.value
+    const patient = patients.find((item) => item.id === patientId)
+    setForm((current) => ({
+      ...current,
+      patientId,
+      ...(patient ? { name: patient.name, phone: patient.phone || current.phone } : {}),
+    }))
+  }
 
   const close = () => {
     setForm(initialForm)
@@ -55,6 +74,16 @@ export default function AppointmentFormModal({ open, onClose, onCreated }) {
         <p className="-mt-1 text-sm text-muted">Schedule a patient visit and keep it in the clinic calendar.</p>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
+            <Label>Existing patient</Label>
+            <div className="relative">
+              <UserRoundSearch className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted" />
+              <select className="input-base pl-9" value={form.patientId} onChange={selectPatient}>
+                <option value="">New or unlinked appointment</option>
+                {patients.map((patient) => <option key={patient.id} value={patient.id}>{patient.name} · {patient.mrn}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="sm:col-span-2">
             <Label required>Patient name</Label>
             <Input value={form.name} onChange={update('name')} placeholder="e.g. Priya Sharma" autoFocus />
           </div>
@@ -83,6 +112,10 @@ export default function AppointmentFormModal({ open, onClose, onCreated }) {
               <option value="45">45 minutes</option>
               <option value="60">1 hour</option>
             </select>
+          </div>
+          <div className="sm:col-span-2">
+            <Label>Doctor</Label>
+            <Input value={form.doctor} onChange={update('doctor')} placeholder="Assign a clinician (optional)" />
           </div>
         </div>
         <div>

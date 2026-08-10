@@ -2,6 +2,7 @@ const express = require('express')
 const store = require('../services/core/store')
 const clinicalIntelligence = require('../services/clinical/intelligence')
 const clinicalFiles = require('../services/clinical/files')
+const patientExperience = require('../services/clinical/patientExperience')
 
 const router = express.Router()
 
@@ -176,6 +177,11 @@ router.post('/patients', async (req, res) => {
     age: body.age ? Number(body.age) : null, phone: String(body.phone || '').trim(), gender: body.gender || 'Not specified',
     specialty: body.specialty || 'General Medicine', doctor: body.doctor || 'Clinic doctor',
     risk: body.risk || 'Low', status: body.status || 'New', condition: String(body.condition || '').trim(),
+    preferredLanguage: String(body.preferredLanguage || 'English').trim(),
+    allergies: Array.isArray(body.allergies) ? body.allergies.map(String).filter(Boolean) : String(body.allergies || '').split(',').map((item) => item.trim()).filter(Boolean),
+    emergencyContact: body.emergencyContact && typeof body.emergencyContact === 'object'
+      ? { name: String(body.emergencyContact.name || '').trim(), phone: String(body.emergencyContact.phone || '').trim(), relationship: String(body.emergencyContact.relationship || '').trim() }
+      : null,
     tags: Array.isArray(body.tags) ? body.tags : [], createdAt: now(), updatedAt: now(),
   }
   await store.setDoc(patientPath(req.user.uid, id), patient, false)
@@ -191,7 +197,7 @@ router.get('/patients/:patientId', async (req, res) => {
 router.patch('/patients/:patientId', async (req, res) => {
   const path = patientPath(req.user.uid, req.params.patientId)
   if (!(await store.getDoc(path))) return res.status(404).json({ message: 'Patient not found.' })
-  const allowed = ['name', 'mrn', 'age', 'phone', 'gender', 'specialty', 'doctor', 'risk', 'status', 'condition', 'tags']
+  const allowed = ['name', 'mrn', 'age', 'phone', 'gender', 'specialty', 'doctor', 'risk', 'status', 'condition', 'tags', 'preferredLanguage', 'allergies', 'emergencyContact', 'conditions', 'vaccinations']
   const update = Object.fromEntries(allowed.filter((key) => req.body?.[key] !== undefined).map((key) => [key, req.body[key]]))
   await store.setDoc(path, { ...update, updatedAt: now() })
   res.json({ patient: await getPatientBundle(req.user.uid, req.params.patientId) })
@@ -386,7 +392,28 @@ router.post('/patients/:patientId/scribe/:sessionId/approve', async (req, res) =
     language: req.body?.language || 'English', channel: 'WhatsApp', status: 'queued_local', createdAt: now(), encounterId,
   }
   await store.setDoc(childPath(uid, req.params.patientId, 'patientSummaries', summaryId), summary, false)
-  res.json({ encounter: { id: encounterId, ...encounter }, summary: { id: summaryId, ...summary }, patient: await getPatientBundle(uid, req.params.patientId) })
+  const afterVisitPlanId = store.genId()
+  const generatedPlan = await patientExperience.createDraft({
+    uid,
+    patient: { id: patient.id, ...patient },
+    encounter: { id: encounterId, ...encounter },
+    targetLanguage: req.body?.language || 'English',
+  })
+  const afterVisitPlan = {
+    ...generatedPlan,
+    encounterId,
+    status: 'draft',
+    clinicianReviewStatus: 'pending',
+    createdAt: now(),
+    updatedAt: now(),
+  }
+  await store.setDoc(childPath(uid, req.params.patientId, 'afterVisitPlans', afterVisitPlanId), afterVisitPlan, false)
+  res.json({
+    encounter: { id: encounterId, ...encounter },
+    summary: { id: summaryId, ...summary },
+    afterVisitPlan: { id: afterVisitPlanId, ...afterVisitPlan },
+    patient: await getPatientBundle(uid, req.params.patientId),
+  })
 })
 
 router.post('/patients/:patientId/chat', async (req, res) => {

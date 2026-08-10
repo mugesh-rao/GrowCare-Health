@@ -63,6 +63,7 @@ app.use('/api/inbox', require('./routes/inbox'))
 app.use('/api/products', require('./routes/products'))
 app.use('/api/bookings', require('./routes/bookings'))
 app.use('/api/clinical', require('./routes/clinical'))
+app.use('/api/clinical', require('./routes/patientExperience'))
 app.use('/api/network', require('./routes/network'))
 
 const server = http.createServer(app)

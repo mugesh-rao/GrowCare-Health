@@ -27,6 +27,7 @@ const UPLOADS = [
 const initial = {
   name: '', mrn: '', age: '', phone: '', gender: 'Female',
   specialty: 'General Medicine', doctor: '', risk: 'Low', status: 'New',
+  preferredLanguage: 'English', allergies: '', emergencyContactName: '', emergencyContactPhone: '', emergencyContactRelationship: '',
 }
 
 export default function NewPatientPage() {
@@ -54,7 +55,15 @@ export default function NewPatientPage() {
     setSaving(true)
     setError('')
     try {
-      const patient = await clinicalApi.createPatient(form)
+      const patient = await clinicalApi.createPatient({
+        ...form,
+        allergies: form.allergies.split(',').map((item) => item.trim()).filter(Boolean),
+        emergencyContact: {
+          name: form.emergencyContactName,
+          phone: form.emergencyContactPhone,
+          relationship: form.emergencyContactRelationship,
+        },
+      })
       const selectedFiles = Object.entries(files).filter(([, file]) => file)
       await Promise.all(selectedFiles.map(async ([kind, file]) => {
         const sourceText = file.type.startsWith('text/') ? await file.text() : `Uploaded ${file.name}. Review the original file in the local clinic workspace.`
@@ -103,6 +112,16 @@ export default function NewPatientPage() {
                 <option>Other</option>
               </select>
             </div>
+            <div>
+              <Label>Preferred language</Label>
+              <select className="input-base" value={form.preferredLanguage} onChange={e => set('preferredLanguage', e.target.value)}>
+                {['English', 'Hindi', 'Tamil', 'Telugu', 'Kannada', 'Malayalam', 'Marathi', 'Bengali', 'Gujarati', 'Punjabi', 'Urdu'].map((language) => <option key={language}>{language}</option>)}
+              </select>
+            </div>
+            <div className="sm:col-span-2">
+              <Label>Known allergies</Label>
+              <Input value={form.allergies} onChange={e => set('allergies', e.target.value)} placeholder="Separate multiple allergies with commas" />
+            </div>
           </div>
 
           <div className="border-t border-line" />
@@ -120,6 +139,14 @@ export default function NewPatientPage() {
           <div>
             <Label>Assigned doctor</Label>
             <Input value={form.doctor} onChange={e => set('doctor', e.target.value)} placeholder="Dr. Nivedita Rao" />
+          </div>
+          <div className="border-t border-line pt-5">
+            <Label>Emergency contact</Label>
+            <div className="mt-2 grid gap-3 sm:grid-cols-2">
+              <Input value={form.emergencyContactName} onChange={e => set('emergencyContactName', e.target.value)} placeholder="Contact name" />
+              <Input value={form.emergencyContactPhone} onChange={e => set('emergencyContactPhone', e.target.value)} placeholder="Phone number" />
+              <Input className="sm:col-span-2" value={form.emergencyContactRelationship} onChange={e => set('emergencyContactRelationship', e.target.value)} placeholder="Relationship to patient" />
+            </div>
           </div>
         </div>
 
