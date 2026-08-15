@@ -10,13 +10,6 @@ const packagedServerModules = join(serverDestination, 'node_modules')
 const nodeDestination = join(resourceRoot, 'node', process.platform === 'win32' ? 'node.exe' : 'node')
 
 async function copyServer() {
-  // The local sidecar can be running while `tauri dev`/`tauri build` is
-  // invoked again. Updating its JavaScript is safe; replacing a loaded
-  // dependency tree on Windows is not. Keep the packaged dependency tree
-  // after its first creation and refresh only the app/server source files.
-  const hasPackagedModules = await stat(packagedServerModules)
-    .then((entry) => entry.isDirectory())
-    .catch(() => false)
   await cp(serverSource, serverDestination, {
     recursive: true,
     force: true,
@@ -25,9 +18,10 @@ async function copyServer() {
       return !relative.startsWith('/node_modules') && !relative.startsWith('/.data') && !relative.startsWith('/.sqlite-') && !relative.startsWith('/logs')
     },
   })
-  if (!hasPackagedModules) {
-    await cp(join(serverSource, 'node_modules'), packagedServerModules, { recursive: true, force: true })
-  }
+  // Keep the runtime dependency tree aligned with the server. The Tauri
+  // process is stopped before this preparation step, so overwriting these
+  // generated resources is safe and prevents stale bundles after npm install.
+  await cp(join(serverSource, 'node_modules'), packagedServerModules, { recursive: true, force: true })
 }
 
 await stat(join(serverSource, 'node_modules')).catch(() => {

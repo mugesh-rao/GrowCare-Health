@@ -1,6 +1,7 @@
 const express = require('express')
 const store = require('../services/core/store')
 const antiBan = require('../services/whatsapp/antiBan')
+const secureSettings = require('../services/core/secureSettings')
 
 const router = express.Router()
 
@@ -31,42 +32,14 @@ router.put('/antiban', async (req, res) => {
 
 // GET /api/user/ai-settings — return local AI configuration without exposing the secret.
 router.get('/ai-settings', async (req, res) => {
-  const user = await store.getDoc(`users/${req.user.uid}`)
-  const settings = user?.aiSettings || {}
-  res.json({
-    settings: {
-      hasApiKey: Boolean(settings.apiKey),
-      model: settings.model || 'gpt-5.6-luna',
-      useForScribing: Boolean(settings.useForScribing),
-      useForClinicalAI: Boolean(settings.useForClinicalAI),
-    },
-  })
+  const settings = await secureSettings.readAISettings(req.user.uid)
+  res.json({ settings: secureSettings.publicAISettings(settings) })
 })
 
 // PUT /api/user/ai-settings — persists the OpenAI key in the local GrowCare DB.
 // The key is deliberately write-only: no API can read it back to the webview.
 router.put('/ai-settings', async (req, res) => {
-  const { uid } = req.user
-  const existing = await store.getDoc(`users/${uid}`)
-  const previous = existing?.aiSettings || {}
-  const body = req.body || {}
-  const apiKey = body.clearApiKey
-    ? ''
-    : body.apiKey === undefined
-      ? String(previous.apiKey || '')
-      : String(body.apiKey || '').trim()
-  const model = String(body.model || previous.model || 'gpt-5.6-luna').trim() || 'gpt-5.6-luna'
-  const useForScribing = body.useForScribing === undefined
-    ? Boolean(previous.useForScribing)
-    : Boolean(body.useForScribing)
-  const useForClinicalAI = body.useForClinicalAI === undefined
-    ? Boolean(previous.useForClinicalAI)
-    : Boolean(body.useForClinicalAI)
-
-  await store.setDoc(`users/${uid}`, {
-    aiSettings: { apiKey, model, useForScribing, useForClinicalAI, updatedAt: Date.now() },
-  })
-  res.json({ settings: { hasApiKey: Boolean(apiKey), model, useForScribing, useForClinicalAI } })
+  res.json({ settings: await secureSettings.saveAISettings(req.user.uid, req.body || {}) })
 })
 
 // GET /api/user/me — current profile (creates the record on first call).
@@ -84,7 +57,7 @@ router.get('/me', async (req, res) => {
     await store.setDoc(`users/${uid}`, user)
     user = await store.getDoc(`users/${uid}`)
   }
-  res.json({ user })
+  res.json({ user: secureSettings.sanitizeUser(user) })
 })
 
 // PATCH /api/user/me — update profile fields (name, businessType, goal).
@@ -97,7 +70,7 @@ router.patch('/me', async (req, res) => {
     ...(businessType !== undefined && { businessType }),
     ...(goal !== undefined && { goal }),
   })
-  res.json({ user: await store.getDoc(`users/${uid}`) })
+  res.json({ user: secureSettings.sanitizeUser(await store.getDoc(`users/${uid}`)) })
 })
 
 // GET /api/user/stats — dashboard summary counts.
@@ -153,7 +126,7 @@ router.post('/onboarding', async (req, res) => {
     onboardingCompleted: true,
   })
   const user = await store.getDoc(`users/${uid}`)
-  res.json({ user })
+  res.json({ user: secureSettings.sanitizeUser(user) })
 })
 
 module.exports = router

@@ -2,6 +2,7 @@ const fs = require('fs')
 const os = require('os')
 const path = require('path')
 const store = require('../core/store')
+const secureSettings = require('../core/secureSettings')
 const files = require('./files')
 const { DEFAULT_CLINICAL_MODEL, clientFor } = require('./agents/runtime')
 const { extractClinicalSource } = require('./agents/extractionAgent')
@@ -12,8 +13,7 @@ const { draftScribeNote } = require('./agents/scribeAgent')
 const MAX_TEXT = 180000
 
 async function settingsFor(uid) {
-  const user = await store.getDoc(`users/${uid}`)
-  return user?.aiSettings || {}
+  return secureSettings.readAISettings(uid)
 }
 
 async function createInputForArtifact(client, patient, artifact, filePath, model) {

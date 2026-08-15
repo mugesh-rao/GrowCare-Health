@@ -23,6 +23,7 @@ export default function AISettingsCard() {
   const [settings, setSettings] = useState(null)
   const [apiKey, setApiKey] = useState('')
   const [model, setModel] = useState('gpt-5.6-luna')
+  const [embeddingModel, setEmbeddingModel] = useState('text-embedding-3-small')
   const [useForScribing, setUseForScribing] = useState(false)
   const [useForClinicalAI, setUseForClinicalAI] = useState(false)
   const [showKey, setShowKey] = useState(false)
@@ -36,6 +37,7 @@ export default function AISettingsCard() {
       .then((next) => {
         setSettings(next)
         setModel(next.model || 'gpt-5.6-luna')
+        setEmbeddingModel(next.embeddingModel || 'text-embedding-3-small')
         setUseForScribing(Boolean(next.useForScribing))
         setUseForClinicalAI(Boolean(next.useForClinicalAI))
       })
@@ -50,6 +52,7 @@ export default function AISettingsCard() {
       const next = await userService.updateAiSettings({
         ...(apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
         model,
+        embeddingModel,
         useForScribing,
         useForClinicalAI,
       })
@@ -82,7 +85,7 @@ export default function AISettingsCard() {
     setSaving(true)
     setError('')
     try {
-      const next = await userService.updateAiSettings({ clearApiKey: true, model, useForScribing: false, useForClinicalAI: false })
+      const next = await userService.updateAiSettings({ clearApiKey: true, model, embeddingModel, useForScribing: false, useForClinicalAI: false })
       setSettings(next)
       setApiKey('')
       setUseForScribing(false)
@@ -103,7 +106,7 @@ export default function AISettingsCard() {
       </Card.Header>
       <Card.Body className="space-y-5">
         {!settings ? <div className="grid place-items-center py-7"><Spinner className="h-6 w-6 text-brand-600" /></div> : <>
-          <Alert tone="info">The key is stored only in this GrowCare workspace. It is write-only in the interface and is used by the local server for configured AI actions.</Alert>
+          <Alert tone="info">The key is encrypted before it is stored in this GrowCare workspace. It is write-only in the interface and is used only by the local server for enabled AI actions.</Alert>
           <div>
             <Label>OpenAI API key</Label>
             <div className="relative">
@@ -116,6 +119,11 @@ export default function AISettingsCard() {
           <div className="sm:w-1/2">
             <Label>Default model</Label>
             <input className="input-base" value={model} onChange={(event) => setModel(event.target.value)} placeholder="gpt-5.6-luna" />
+          </div>
+          <div className="sm:w-1/2">
+            <Label>Embedding model for local patient search</Label>
+            <input className="input-base" value={embeddingModel} onChange={(event) => setEmbeddingModel(event.target.value)} placeholder="text-embedding-3-small" />
+            <p className="mt-1.5 text-xs text-muted">Vectors are created through your OpenAI account, then stored only in the local GrowCare database for patient-scoped retrieval.</p>
           </div>
           <div className="flex items-start justify-between gap-4 rounded-xl border border-line bg-canvas px-4 py-3">
             <div><p className="text-sm font-medium text-ink">Use for scribe drafts</p><p className="mt-0.5 text-xs text-muted">When enabled, a consented transcript is sent to OpenAI to prepare a clinician-review draft. If it fails or is disabled, GrowCare uses its local draft instead.</p></div>

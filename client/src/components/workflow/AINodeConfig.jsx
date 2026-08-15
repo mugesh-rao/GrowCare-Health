@@ -22,12 +22,6 @@ export default function AINodeConfig({ data, update }) {
   const current = providers.find((p) => p.id === providerId)
   const modelOptions = Array.from(new Set([...(current?.models || []), ...models]))
 
-  // Seed model suggestions from the provider's defaults.
-  useEffect(() => {
-    if (current && !models.length) setModels(current.models || [])
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [current])
-
   const onProvider = (id) => {
     const p = providers.find((x) => x.id === id)
     setModels(p?.models || [])

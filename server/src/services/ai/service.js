@@ -1,9 +1,9 @@
 const { PROVIDERS, resolveBaseUrl } = require('../../config/ai')
 const store = require('../core/store')
+const secureSettings = require('../core/secureSettings')
 
 async function localAiSettings(uid) {
-  const user = await store.getDoc(`users/${uid || 'local-owner'}`)
-  return user?.aiSettings || {}
+  return secureSettings.readAISettings(uid || 'local-owner')
 }
 
 async function resolveCredentials({ uid, provider = 'openai', apiKey, model, preferProvidedKey = false }) {

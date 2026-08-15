@@ -3,6 +3,7 @@ const store = require('../services/core/store')
 const clinicalIntelligence = require('../services/clinical/intelligence')
 const clinicalFiles = require('../services/clinical/files')
 const patientExperience = require('../services/clinical/patientExperience')
+const clinicalRag = require('../services/clinical/rag')
 
 const router = express.Router()
 
@@ -230,6 +231,12 @@ router.post('/patients/:patientId/artifacts', async (req, res) => {
     createdAt: now(), extractionStatus: 'not_processed',
   }
   await store.setDoc(childPath(uid, req.params.patientId, 'artifacts', id), artifact, false)
+  if (sourceText) {
+    clinicalRag.indexSource({
+      uid, patientId: req.params.patientId, artifactId: id,
+      sourceType: 'uploaded source', sourceLabel: artifact.fileName, text: sourceText,
+    }).catch((error) => console.error('[clinical rag upload]', error.message))
+  }
   const extracted = extractObservations(sourceText)
   const observations = []
   for (const item of extracted) {
@@ -277,8 +284,12 @@ router.post('/patients/:patientId/artifacts/:artifactId/process', async (req, re
       observations.push({ id: observationId, ...observation })
     }
     const alerts = await createAlerts(uid, patient.id, observations, artifact.fileName)
+    const ragIndex = await clinicalRag.indexSource({
+      uid, patientId: patient.id, artifactId: artifact.id,
+      sourceType: result.sourceMode, sourceLabel: artifact.fileName, text: result.sourceText,
+    })
     await store.setDoc(artifactPath, { extractionStatus: 'ready', extractionId, processedAt: now(), processingDisclosure: 'This source was sent to OpenAI after local confirmation for draft extraction.' })
-    res.json({ extraction: { id: extractionId, ...extraction }, observations, alerts })
+    res.json({ extraction: { id: extractionId, ...extraction }, observations, alerts, ragIndex })
   } catch (error) {
     await store.setDoc(artifactPath, { extractionStatus: 'failed', processingError: error.message, updatedAt: now() })
     res.status(422).json({ message: error.message || 'Clinical extraction failed.' })
@@ -383,6 +394,11 @@ router.post('/patients/:patientId/scribe/:sessionId/approve', async (req, res) =
   const encounterId = store.genId()
   const encounter = { title: 'Ambient scribe visit', status: 'approved', occurredAt: now(), note, sourceSessionId: session.id }
   await store.setDoc(childPath(uid, req.params.patientId, 'encounters', encounterId), encounter, false)
+  const noteForIndex = [note.chiefComplaint, note.examination, note.diagnosis, note.followUp, (note.prescriptions || []).map((item) => `${item.drug || item.name || ''} ${item.dose || ''} ${item.frequency || ''}`).join('\n')].filter(Boolean).join('\n\n')
+  await clinicalRag.indexSource({
+    uid, patientId: req.params.patientId, encounterId,
+    sourceType: 'clinician-approved visit', sourceLabel: encounter.title, text: noteForIndex,
+  })
   const observations = extractObservations([note.chiefComplaint, note.examination, note.diagnosis, note.followUp].join('\n'))
   for (const item of observations) await store.setDoc(childPath(uid, req.params.patientId, 'observations', store.genId()), { ...item, observedAt: now(), sourceEncounterId: encounterId, source: 'Ambient scribe note' }, false)
   await store.setDoc(sessionPath, { status: 'approved', approvedEncounterId: encounterId, approvedAt: now() })
@@ -422,20 +438,48 @@ router.post('/patients/:patientId/chat', async (req, res) => {
   if (!patient) return res.status(404).json({ message: 'Patient not found.' })
   const question = String(req.body?.question || '').trim()
   if (!question) return res.status(400).json({ message: 'Enter a question about the patient record.' })
-  const [extractions, context] = await Promise.all([
+  const [, context] = await Promise.all([
     store.listDocs(`${patientPath(uid, patient.id)}/clinicalExtractions`),
     store.getDoc(childPath(uid, patient.id, 'clinicalContext', 'current')),
   ])
   const sources = patient.chart.artifacts.map((artifact) => artifact.fileName)
   const metrics = patient.chart.observations.slice(-5).map((item) => `${item.name} ${item.value} ${item.unit || ''}`).join(', ')
+  const retrieval = await clinicalRag.retrieve({ uid, patientId: patient.id, question })
   try {
-    const answer = await clinicalIntelligence.askRecord({ uid, patient, context, sources: extractions.map((item) => ({ artifactId: item.artifactId, ...item.data })), question })
-    if (answer) return res.json({ answer, question, generatedWith: 'OpenAI grounded record chat' })
+    const answer = await clinicalIntelligence.askRecord({ uid, patient, context, sources: retrieval.chunks, question })
+    if (answer) return res.json({ answer, question, citations: retrieval.chunks, retrievalMode: retrieval.mode, generatedWith: 'OpenAI local RAG chat' })
   } catch (error) {
     console.error('[clinical chat]', error.message)
   }
   const answer = `Record summary: ${context?.summary || patient.briefingCard.aiSummary} ${metrics ? `Recent extracted observations: ${metrics}.` : ''} ${sources.length ? `Sources: ${sources.join(', ')}.` : ''} This is contextual record support only; verify against original documents and clinical judgment.`
-  res.json({ answer, question, generatedWith: 'local record summary' })
+  res.json({ answer, question, citations: retrieval.chunks, retrievalMode: retrieval.mode, generatedWith: 'local record summary' })
+})
+
+router.get('/patients/:patientId/rag-status', async (req, res) => {
+  const patient = await store.getDoc(patientPath(req.user.uid, req.params.patientId))
+  if (!patient) return res.status(404).json({ message: 'Patient not found.' })
+  res.json({ status: clinicalRag.stats({ uid: req.user.uid, patientId: patient.id }) })
+})
+
+router.post('/patients/:patientId/rag/reindex', async (req, res) => {
+  const uid = req.user.uid
+  const patient = await store.getDoc(patientPath(uid, req.params.patientId))
+  if (!patient) return res.status(404).json({ message: 'Patient not found.' })
+  const [artifacts, encounters] = await Promise.all([
+    store.listDocs(`${patientPath(uid, patient.id)}/artifacts`),
+    store.listDocs(`${patientPath(uid, patient.id)}/encounters`),
+  ])
+  const indexed = []
+  for (const artifact of artifacts) {
+    const text = String(artifact.sourceText || '')
+    if (text) indexed.push(await clinicalRag.indexSource({ uid, patientId: patient.id, artifactId: artifact.id, sourceType: artifact.kind || 'uploaded source', sourceLabel: artifact.fileName || 'Clinical source', text }))
+  }
+  for (const encounter of encounters.filter((item) => item.status === 'approved')) {
+    const note = encounter.note || {}
+    const text = [note.chiefComplaint, note.examination, note.diagnosis, note.followUp, (note.prescriptions || []).map((item) => `${item.drug || item.name || ''} ${item.dose || ''} ${item.frequency || ''}`).join('\n')].filter(Boolean).join('\n\n')
+    if (text) indexed.push(await clinicalRag.indexSource({ uid, patientId: patient.id, encounterId: encounter.id, sourceType: 'clinician-approved visit', sourceLabel: encounter.title || 'Clinical visit', text }))
+  }
+  res.json({ indexedSources: indexed.length, status: clinicalRag.stats({ uid, patientId: patient.id }) })
 })
 
 router.get('/patients/:patientId/fhir', async (req, res) => {

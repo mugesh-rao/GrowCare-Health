@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { clinicalApi } from '../../services/clinicalApi'
 import {
   ArrowUp,
@@ -12,6 +12,7 @@ import {
   TrendingUp,
   TriangleAlert,
   BrainCircuit,
+  RefreshCw,
 } from 'lucide-react'
 import DoctorBriefingCard from './DoctorBriefingCard'
 import PatientBadge from './PatientBadge'
@@ -304,6 +305,28 @@ export default function PatientChatWorkspace({ patient, onUpdated }) {
 function ChatView({ patient }) {
   const [messages, setMessages] = useState(patient.chat || [])
   const [input, setInput] = useState('')
+  const [ragStatus, setRagStatus] = useState(null)
+  const [reindexing, setReindexing] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    clinicalApi.ragStatus(patient.id).then((status) => {
+      if (active) setRagStatus(status)
+    }).catch(() => {
+      if (active) setRagStatus(null)
+    })
+    return () => { active = false }
+  }, [patient.id])
+
+  const reindex = async () => {
+    setReindexing(true)
+    try {
+      const result = await clinicalApi.reindexPatientRag(patient.id)
+      setRagStatus(result.status)
+    } finally {
+      setReindexing(false)
+    }
+  }
 
   const send = async () => {
     if (!input.trim()) return
@@ -311,12 +334,12 @@ function ChatView({ patient }) {
     setMessages((m) => [
       ...m,
       { role: 'user', text: question },
-      { role: 'assistant', text: 'Reviewing the full record and all attached sources. Please hold on.' },
+      { role: 'assistant', text: 'Searching this patient’s local clinical record…', citations: [] },
     ])
     setInput('')
     try {
-      const answer = await clinicalApi.askRecord(patient.id, question)
-      setMessages((messages) => [...messages.slice(0, -1), { role: 'assistant', text: answer }])
+      const result = await clinicalApi.askRecord(patient.id, question)
+      setMessages((messages) => [...messages.slice(0, -1), { role: 'assistant', text: result.answer, citations: result.citations || [], retrievalMode: result.retrievalMode }])
     } catch (error) {
       setMessages((messages) => [...messages.slice(0, -1), { role: 'assistant', text: `I could not read the local clinical record: ${error.message}` }])
     }
@@ -336,6 +359,7 @@ function ChatView({ patient }) {
           </button>
         ))}
       </div>
+      {ragStatus && <div className="flex shrink-0 items-center gap-2 px-5 pt-3 text-[11px] text-muted"><span>{ragStatus.chunks || 0} local search passages{ragStatus.embeddedChunks ? ` · ${ragStatus.embeddedChunks} vector indexed` : ''}</span><button type="button" onClick={reindex} disabled={reindexing} className="inline-flex items-center gap-1 font-semibold text-brand-700 hover:text-brand-900 disabled:opacity-50"><RefreshCw className={`h-3 w-3 ${reindexing ? 'animate-spin' : ''}`} />Re-index</button></div>}
 
       <div className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
         {messages.map((msg, i) => {
@@ -351,7 +375,16 @@ function ChatView({ patient }) {
                 'max-w-[75%] rounded-[20px] px-5 py-3.5 text-sm leading-6 ' +
                 (ai ? 'rounded-tl-md border border-line bg-white text-ink' : 'rounded-tr-md bg-[#e7eafe] text-ink')
               }>
-                {msg.text}
+                <p className="whitespace-pre-wrap">{msg.text}</p>
+                {ai && msg.citations?.length > 0 && (
+                  <div className="mt-3 border-t border-line pt-3">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">Local sources</p>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {msg.citations.map((citation) => <span key={citation.id} title={citation.excerpt} className="rounded-full border border-brand-100 bg-brand-50 px-2 py-1 text-[10px] font-semibold text-brand-800">[{citation.citation}] {citation.sourceLabel}</span>)}
+                    </div>
+                    {msg.retrievalMode && <p className="mt-2 text-[10px] text-muted">{msg.retrievalMode}</p>}
+                  </div>
+                )}
               </div>
             </div>
           )

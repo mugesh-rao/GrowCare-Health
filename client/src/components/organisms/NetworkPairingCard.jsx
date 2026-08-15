@@ -78,9 +78,9 @@ export default function NetworkPairingCard() {
   }, [])
 
   useEffect(() => {
-    refresh()
+    const initial = setTimeout(refresh, 0)
     const timer = setInterval(refresh, POLL_MS)
-    return () => clearInterval(timer)
+    return () => { clearTimeout(initial); clearInterval(timer) }
   }, [refresh])
 
   const noticeTimer = useRef()

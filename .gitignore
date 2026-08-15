@@ -3,9 +3,11 @@ node_modules
 .data
 service.json
 .codegraph
-/.codegraph\
+/.codegraph/
 
 .playwright-mcp
+.tmp-rag-check/
+.tmp-api-check/
 client/dist
 server/.sqlite-smoke
 src-tauri/resources

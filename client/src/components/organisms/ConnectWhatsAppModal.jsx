@@ -49,14 +49,16 @@ export default function ConnectWhatsAppModal({ open, onClose, onConnected }) {
 
   useEffect(() => {
     if (!open) {
-      setSessionId(null)
-      setQr(null)
-      setStatus('idle')
-      setError('')
-      return
+      const reset = setTimeout(() => {
+        setSessionId(null)
+        setQr(null)
+        setStatus('idle')
+        setError('')
+      }, 0)
+      return () => clearTimeout(reset)
     }
     let cancelled = false
-    setStatus('connecting')
+    const connecting = setTimeout(() => setStatus('connecting'), 0)
     waService
       .create('WhatsApp')
       .then((s) => {
@@ -81,6 +83,7 @@ export default function ConnectWhatsAppModal({ open, onClose, onConnected }) {
     let cleanupPoll = () => {}
     return () => {
       cancelled = true
+      clearTimeout(connecting)
       cleanupPoll()
     }
   }, [open])

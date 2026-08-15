@@ -58,9 +58,12 @@ export default function Settings() {
   const [showConnect, setShowConnect] = useState(false)
 
   useEffect(() => {
-    setName(user?.name || '')
-    setEmail(user?.email || '')
-    setBusinessType(user?.businessType || '')
+    const sync = setTimeout(() => {
+      setName(user?.name || '')
+      setEmail(user?.email || '')
+      setBusinessType(user?.businessType || '')
+    }, 0)
+    return () => clearTimeout(sync)
   }, [user])
 
   const loadSessions = useCallback(async () => {

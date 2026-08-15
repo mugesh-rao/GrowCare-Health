@@ -30,8 +30,8 @@
   --color-canvas: #f7f6f2;
 
   /* Fonts */
-  --font-sans: "Inter", "Segoe UI", system-ui, sans-serif;
-  --font-display: "Inter", "Segoe UI", system-ui, sans-serif;
+  --font-sans: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
 
   /* Radius */
   --radius-xl: 0.875rem;
